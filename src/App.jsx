@@ -12,15 +12,18 @@ import TransparencyLedger from './components/public/TransparencyLedger';
 import DonorLogin from './components/auth/DonorLogin';
 import ReceiverLogin from './components/auth/ReceiverLogin';
 import OrgLogin from './components/auth/OrgLogin';
+import VolunteerLogin from './components/auth/VolunteerLogin';
 
 import DonorDashboard from './components/donor/DonorDashboard';
 import ReceiverDashboard from './components/receiver/ReceiverDashboard';
 import OrgDashboard from './components/organization/OrgDashboard';
+import VolunteerDashboard from './components/volunteer/VolunteerDashboard';
 import EmergencyQuickRequest from './components/receiver/EmergencyQuickRequest';
+import AvailableResourcesDirectory from './components/public/AvailableResourcesDirectory';
 
 import ManifestPrintView from './components/organization/ManifestPrintView';
 import UnifiedHub from './components/UnifiedHub';
-import { Heart, LifeBuoy, Package, Building2 } from 'lucide-react';
+import { Heart, LifeBuoy, Package, Building2, Users, Boxes } from 'lucide-react';
 
 export default function App() {
   const { activeView, setActiveView } = useAuth();
@@ -38,14 +41,20 @@ export default function App() {
         return <CampDirectory />;
       case 'transparency':
         return <TransparencyLedger />;
+      case 'resources':
+        return <AvailableResourcesDirectory />;
       case 'donor-login':
         return <DonorLogin />;
+      case 'volunteer-login':
+        return <VolunteerLogin />;
       case 'receiver-login':
         return <ReceiverLogin />;
       case 'org-login':
         return <OrgLogin />;
       case 'donor-portal':
         return <DonorDashboard />;
+      case 'volunteer-portal':
+        return <VolunteerDashboard />;
       case 'receiver-portal':
         return <ReceiverDashboard />;
       case 'org-portal':
@@ -102,6 +111,15 @@ export default function App() {
                 </li>
                 <li>
                   <button
+                    onClick={() => setActiveView('volunteer-login')}
+                    className="hover:text-indigo-400 transition-colors flex items-center gap-1.5"
+                  >
+                    <Users className="w-3 h-3 text-indigo-400" />
+                    <span>Volunteer Login</span>
+                  </button>
+                </li>
+                <li>
+                  <button
                     onClick={() => setActiveView('receiver-login')}
                     className="hover:text-amber-400 transition-colors flex items-center gap-1.5"
                   >
@@ -131,6 +149,15 @@ export default function App() {
                     className="text-red-400 hover:text-red-300 font-bold transition-colors"
                   >
                     Emergency SOS Request (No login) →
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => setActiveView('resources')}
+                    className="hover:text-slate-300 transition-colors flex items-center gap-1.5"
+                  >
+                    <Boxes className="w-3 h-3 text-slate-400" />
+                    <span>Search Available Resources</span>
                   </button>
                 </li>
                 <li>

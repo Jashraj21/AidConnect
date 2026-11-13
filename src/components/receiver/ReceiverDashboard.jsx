@@ -35,13 +35,15 @@ import NearbyCampsFinder from '../common/NearbyCampsFinder';
 import { lookupPincode } from '../../utils/pincodeService';
 import ReceiverCartModal from './ReceiverCartModal';
 import NearestDonorsSection from './NearestDonorsSection';
+import ProfileEditModal from '../common/ProfileEditModal';
 
 export default function ReceiverDashboard() {
   const { currentUser } = useAuth();
-  const { requests, addRequest, updateRequest, deleteRequest, acceptRequestDelivery } = useData();
+  const { requests, addRequest, updateRequest, updateRequestStatus, deleteRequest, acceptRequestDelivery } = useData();
 
   // Active Tab: 'catalog' (Requisition Items & Cart) | 'my-needs' (Manage Active Camp Needs)
   const [activeTab, setActiveTab] = useState('catalog');
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Single-item quick post form modal
   const [showSingleRequestModal, setShowSingleRequestModal] = useState(false);
@@ -357,6 +359,13 @@ export default function ReceiverDashboard() {
                 {currentUser?.phone && <span>• Tel: {currentUser.phone}</span>}
                 {currentUser?.designation && <span>• Role: {currentUser.designation}</span>}
                 {currentUser?.location && <span>• Location: {currentUser.location}</span>}
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(true)}
+                  className="text-amber-800 hover:text-amber-900 font-bold underline"
+                >
+                  Manage Profile
+                </button>
               </div>
             </div>
           </div>
@@ -742,6 +751,17 @@ export default function ReceiverDashboard() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                          <select
+                            value={req.status === 'COMPLETED' ? 'COMPLETED' : req.status === 'ACCEPTED' ? 'ACCEPTED' : 'PENDING'}
+                            onChange={(e) => updateRequestStatus(req.id, e.target.value)}
+                            className="font-bold text-[11px] px-2.5 py-1 rounded-md border border-slate-300 bg-white outline-none cursor-pointer"
+                            title="Update request status (Pending, Accepted, or Completed)"
+                          >
+                            <option value="PENDING">🟡 PENDING</option>
+                            <option value="ACCEPTED">🔵 ACCEPTED</option>
+                            <option value="COMPLETED">🟢 COMPLETED</option>
+                          </select>
+
                           <span
                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                               isAccepted
@@ -1270,6 +1290,10 @@ export default function ReceiverDashboard() {
             </form>
           </div>
         </div>
+      )}
+      {/* MANAGE PROFILE MODAL */}
+      {showProfileModal && (
+        <ProfileEditModal onClose={() => setShowProfileModal(false)} />
       )}
     </div>
   );

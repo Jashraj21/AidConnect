@@ -37,6 +37,7 @@ import { CATEGORIES, STANDARD_ITEMS } from '../../data/initialData';
 import PledgeModal from './PledgeModal';
 import MoneyDonationModal from './MoneyDonationModal';
 import DirectReceiverContactModal from '../common/DirectReceiverContactModal';
+import ProfileEditModal from '../common/ProfileEditModal';
 
 export default function DonorDashboard() {
   const { currentUser } = useAuth();
@@ -55,6 +56,7 @@ export default function DonorDashboard() {
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [targetCampForMoney, setTargetCampForMoney] = useState(null);
   const [directContactData, setDirectContactData] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [itemSearchQuery, setItemSearchQuery] = useState('');
 
@@ -280,9 +282,18 @@ export default function DonorDashboard() {
                   Donor Portal
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Direct disaster basic needs donation platform {currentUser?.city ? `• ${currentUser.city}` : ''}
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <p className="text-xs text-slate-500">
+                  Direct disaster basic needs donation platform {currentUser?.city ? `• ${currentUser.city}` : ''}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(true)}
+                  className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold underline"
+                >
+                  Manage Profile
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1310,6 +1321,11 @@ export default function DonorDashboard() {
           pledge={directContactData.pledge}
           onClose={() => setDirectContactData(null)}
         />
+      )}
+
+      {/* MANAGE PROFILE MODAL */}
+      {showProfileModal && (
+        <ProfileEditModal onClose={() => setShowProfileModal(false)} />
       )}
     </div>
   );

@@ -19,14 +19,15 @@ export function AuthProvider({ children }) {
 
       if (savedUser) {
         const u = JSON.parse(savedUser);
-        // If a specific inner view was open (e.g. supply-hub, needs-feed, camps, transparency, or portal), preserve it
-        if (savedView && !['donor-login', 'receiver-login', 'org-login'].includes(savedView)) {
+        // If a specific inner view was open, preserve it
+        if (savedView && !['donor-login', 'receiver-login', 'org-login', 'volunteer-login'].includes(savedView)) {
           return savedView;
         }
         // Fallback to role-specific portal
         if (u.role === 'DONOR') return 'donor-portal';
         if (u.role === 'RECEIVER') return 'receiver-portal';
         if (u.role === 'ORGANIZATION') return 'org-portal';
+        if (u.role === 'VOLUNTEER') return 'volunteer-portal';
       }
 
       return savedView || 'home';
@@ -128,6 +129,43 @@ export function AuthProvider({ children }) {
     return user;
   };
 
+  const loginAsVolunteer = (formData) => {
+    const user = {
+      id: `usr-vol-${Date.now()}`,
+      role: 'VOLUNTEER',
+      name: formData.name || 'Disaster Relief Volunteer',
+      phone: formData.phone || '',
+      email: formData.email || '',
+      pincode: formData.pincode || '',
+      city: formData.city || '',
+      skills: formData.skills && formData.skills.length > 0 ? formData.skills : ['Relief Distribution', 'Field Logistics'],
+      availability: formData.availability || 'Immediate On-call',
+      vehicleType: formData.vehicleType || 'Two-Wheeler / Bike',
+      emergencyContact: formData.emergencyContact || '',
+      activeStatus: 'AVAILABLE', // 'AVAILABLE' | 'ON_DUTY' | 'RESTING'
+      assignedTasksCount: 0
+    };
+    try {
+      localStorage.setItem('donation_auth_user', JSON.stringify(user));
+      localStorage.setItem('donation_active_view', 'volunteer-portal');
+    } catch {}
+    setCurrentUser(user);
+    setActiveView('volunteer-portal');
+    return user;
+  };
+
+  // Manage Profiles (Update current user's profile)
+  const updateUserProfile = (updatedFields) => {
+    setCurrentUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updatedFields };
+      try {
+        localStorage.setItem('donation_auth_user', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
   const logout = () => {
     setCurrentUser(null);
     try {
@@ -146,6 +184,8 @@ export function AuthProvider({ children }) {
         loginAsDonor,
         loginAsReceiver,
         loginAsOrganization,
+        loginAsVolunteer,
+        updateUserProfile,
         logout
       }}
     >

@@ -2,6 +2,99 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const DataContext = createContext();
 
+export const DEFAULT_RESOURCE_LISTINGS = [
+  {
+    id: 'RES-801',
+    item: 'Drinking Water 20L Cans',
+    name: 'Drinking Water 20L Cans',
+    category: 'WATER',
+    inStock: 250,
+    unit: 'cans',
+    hub: 'Ernakulam Disaster Staging Depot',
+    location: 'Kochi, Kerala',
+    pincode: '682025',
+    availability: 'AVAILABLE',
+    condition: 'Sealed & Certified Purified',
+    contactPhone: '9847012345',
+    donorOrOrgName: 'Kerala Water Relief Mission'
+  },
+  {
+    id: 'RES-802',
+    item: 'Dry Ration Food Packets (Biscuits & Grains)',
+    name: 'Dry Ration Food Packets (Biscuits & Grains)',
+    category: 'FOOD',
+    inStock: 500,
+    unit: 'packets',
+    hub: 'Wayanad Central Staging Camp',
+    location: 'Kalpetta, Wayanad',
+    pincode: '673121',
+    availability: 'AVAILABLE',
+    condition: 'Fresh Packaged Foods',
+    contactPhone: '9447123890',
+    donorOrOrgName: 'Malabar Humanitarian Trust'
+  },
+  {
+    id: 'RES-803',
+    item: 'Sanitary Napkins & Personal Hygiene Kits',
+    name: 'Sanitary Napkins & Personal Hygiene Kits',
+    category: 'HYGIENE',
+    inStock: 380,
+    unit: 'kits',
+    hub: 'Chennai Community Relief Hub',
+    location: 'Tambaram, Chennai',
+    pincode: '600045',
+    availability: 'AVAILABLE',
+    condition: 'Sealed Box Packs',
+    contactPhone: '9884123456',
+    donorOrOrgName: 'Tamil Nadu Relief Volunteers'
+  },
+  {
+    id: 'RES-804',
+    item: 'Thermal Blankets & Fleece Bedrolls',
+    name: 'Thermal Blankets & Fleece Bedrolls',
+    category: 'SHELTER_ESSENTIALS',
+    inStock: 180,
+    unit: 'pieces',
+    hub: 'Idukki Hill Camp Logistics Center',
+    location: 'Munnar / Idukki',
+    pincode: '685612',
+    availability: 'LOW_STOCK',
+    condition: 'Clean New Woolen Packs',
+    contactPhone: '9496112233',
+    donorOrOrgName: 'Rotary Disaster Task Force'
+  },
+  {
+    id: 'RES-805',
+    item: 'Emergency ORS & First Aid Antiseptic Kits',
+    name: 'Emergency ORS & First Aid Antiseptic Kits',
+    category: 'MEDICINE',
+    inStock: 420,
+    unit: 'kits',
+    hub: 'Aluva Medical Relief Center',
+    location: 'Aluva, Ernakulam',
+    pincode: '683101',
+    availability: 'AVAILABLE',
+    condition: 'Hospital Certified Stock',
+    contactPhone: '9744556677',
+    donorOrOrgName: 'Red Cross Disaster Unit'
+  },
+  {
+    id: 'RES-806',
+    item: 'Adults & Children Cotton Clothes Bundles',
+    name: 'Adults & Children Cotton Clothes Bundles',
+    category: 'CLOTHES',
+    inStock: 300,
+    unit: 'bundles',
+    hub: 'Bengaluru Logistics Sorting Center',
+    location: 'Whitefield, Bengaluru',
+    pincode: '560066',
+    availability: 'AVAILABLE',
+    condition: 'Sorted & Laundered',
+    contactPhone: '9845012345',
+    donorOrOrgName: 'Citizen Aid Alliance'
+  }
+];
+
 export function DataProvider({ children }) {
   const [calamityZones, setCalamityZones] = useState(() => {
     try {
@@ -47,11 +140,11 @@ export function DataProvider({ children }) {
       const saved = localStorage.getItem('donation_inventory');
       if (saved && saved.includes('INV-01')) {
         localStorage.removeItem('donation_inventory');
-        return [];
+        return DEFAULT_RESOURCE_LISTINGS;
       }
-      return saved ? JSON.parse(saved) : [];
+      return saved && JSON.parse(saved).length > 0 ? JSON.parse(saved) : DEFAULT_RESOURCE_LISTINGS;
     } catch {
-      return [];
+      return DEFAULT_RESOURCE_LISTINGS;
     }
   });
 
@@ -404,18 +497,27 @@ export function DataProvider({ children }) {
   };
 
   // ==========================================
-  // 3. INVENTORY / WAREHOUSE RESOURCES CRUD
+  // 3. INVENTORY / WAREHOUSE RESOURCES CRUD (Create, View, Update, Delete)
   // ==========================================
 
   // CREATE Resource in Inventory
   const addInventoryItem = (itemData) => {
+    const qty = parseInt(itemData.inStock || itemData.quantity, 10) || 0;
     const newItem = {
-      id: `INV-${Date.now().toString().slice(-4)}`,
-      hub: itemData.hub || 'Central Relief Hub',
-      category: itemData.category || 'CLOTHES',
-      item: itemData.item || 'Relief Item',
-      inStock: parseInt(itemData.inStock, 10) || 0,
-      unit: itemData.unit || 'pieces',
+      id: itemData.id || `RES-${Date.now().toString().slice(-4)}`,
+      item: itemData.item || itemData.name || 'Relief Resource',
+      name: itemData.name || itemData.item || 'Relief Resource',
+      category: itemData.category || 'FOOD',
+      inStock: qty,
+      quantity: qty,
+      unit: itemData.unit || 'units',
+      hub: itemData.hub || itemData.location || 'Central Disaster Depot',
+      location: itemData.location || itemData.hub || 'Central Disaster Depot',
+      pincode: itemData.pincode ? String(itemData.pincode).trim() : '',
+      availability: itemData.availability || (qty > 50 ? 'AVAILABLE' : qty > 0 ? 'LOW_STOCK' : 'RESERVED'),
+      condition: itemData.condition || 'New & Inspected',
+      contactPhone: itemData.contactPhone || '',
+      donorOrOrgName: itemData.donorOrOrgName || 'Disaster Relief Alliance',
       lastUpdated: new Date().toISOString()
     };
     setInventory(prev => [newItem, ...prev]);
@@ -425,7 +527,26 @@ export function DataProvider({ children }) {
   // UPDATE Resource in Inventory
   const updateInventoryItem = (invId, updatedFields) => {
     setInventory(prev =>
-      prev.map(item => (item.id === invId ? { ...item, ...updatedFields } : item))
+      prev.map(item => {
+        if (item.id === invId) {
+          const qty = updatedFields.inStock !== undefined
+            ? parseInt(updatedFields.inStock, 10)
+            : updatedFields.quantity !== undefined
+            ? parseInt(updatedFields.quantity, 10)
+            : item.inStock;
+
+          return {
+            ...item,
+            ...updatedFields,
+            inStock: qty,
+            quantity: qty,
+            name: updatedFields.name || updatedFields.item || item.name,
+            item: updatedFields.item || updatedFields.name || item.item,
+            lastUpdated: new Date().toISOString()
+          };
+        }
+        return item;
+      })
     );
   };
 
@@ -435,7 +556,13 @@ export function DataProvider({ children }) {
       prev.map(item => {
         if (item.id === invId) {
           const newQty = Math.max(0, item.inStock + changeQty);
-          return { ...item, inStock: newQty };
+          return {
+            ...item,
+            inStock: newQty,
+            quantity: newQty,
+            availability: newQty > 50 ? 'AVAILABLE' : newQty > 0 ? 'LOW_STOCK' : 'RESERVED',
+            lastUpdated: new Date().toISOString()
+          };
         }
         return item;
       })
@@ -445,6 +572,27 @@ export function DataProvider({ children }) {
   // DELETE Resource from Inventory
   const deleteInventoryItem = (invId) => {
     setInventory(prev => prev.filter(item => item.id !== invId));
+  };
+
+  // Requirement 5: Create donation requests and update their status as pending, accepted or completed
+  const updateRequestStatus = (requestId, newStatus) => {
+    setRequests(prev =>
+      prev.map(req => {
+        if (req.id === requestId) {
+          const isComplete = newStatus === 'COMPLETED';
+          const isAccepted = newStatus === 'ACCEPTED';
+          return {
+            ...req,
+            status: newStatus,
+            quantityFulfilled: isComplete ? req.quantityNeeded : req.quantityFulfilled,
+            completedAt: isComplete ? new Date().toISOString() : req.completedAt,
+            acceptedAt: isAccepted ? (req.acceptedAt || new Date().toISOString()) : req.acceptedAt,
+            lastModified: new Date().toISOString()
+          };
+        }
+        return req;
+      })
+    );
   };
 
   // Calamity Zones CRUD
@@ -491,11 +639,12 @@ export function DataProvider({ children }) {
         monetaryDonations,
         addMonetaryDonation,
         totalMonetaryFunds,
-        // Requests CRUD
+        // Requests CRUD & Status Management
         addRequest,
         addBatchRequests,
         addMultipleRequests: addBatchRequests,
         updateRequest,
+        updateRequestStatus,
         deleteRequest,
         // Workflow actions
         verifyRequest,

@@ -7,7 +7,9 @@ import {
   LogOut,
   Menu,
   X,
-  IndianRupee
+  IndianRupee,
+  Users,
+  Boxes
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -67,6 +69,18 @@ export default function Navbar() {
                 }`}
               >
                 Supply Exchange
+              </button>
+
+              <button
+                onClick={() => setActiveView('resources')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                  activeView === 'resources'
+                    ? 'text-red-700 bg-red-50 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <Boxes className="w-4 h-4 text-slate-500" />
+                <span>Available Resources</span>
               </button>
 
               <button
@@ -135,6 +149,18 @@ export default function Navbar() {
                 </button>
 
                 <button
+                  onClick={() => setActiveView('volunteer-login')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md border flex items-center gap-1.5 transition-colors ${
+                    activeView === 'volunteer-login'
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-900'
+                      : 'border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Volunteer Login</span>
+                </button>
+
+                <button
                   onClick={() => setActiveView('receiver-login')}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md border flex items-center gap-1.5 transition-colors ${
                     activeView === 'receiver-login'
@@ -159,6 +185,7 @@ export default function Navbar() {
                 <button
                   onClick={() => {
                     if (currentUser.role === 'DONOR') setActiveView('donor-portal');
+                    else if (currentUser.role === 'VOLUNTEER') setActiveView('volunteer-portal');
                     else if (currentUser.role === 'RECEIVER') setActiveView('receiver-portal');
                     else if (currentUser.role === 'ORGANIZATION') setActiveView('org-portal');
                   }}
@@ -168,6 +195,8 @@ export default function Navbar() {
                     className={`w-2 h-2 rounded-full ${
                       currentUser.role === 'DONOR'
                         ? 'bg-emerald-600'
+                        : currentUser.role === 'VOLUNTEER'
+                        ? 'bg-indigo-600'
                         : currentUser.role === 'RECEIVER'
                         ? 'bg-amber-600'
                         : 'bg-blue-600'
@@ -219,6 +248,13 @@ export default function Navbar() {
               Supply Exchange
             </button>
             <button
+              onClick={() => { setActiveView('resources'); setMobileMenuOpen(false); }}
+              className="text-left px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded flex items-center justify-between"
+            >
+              <span>Available Resources</span>
+              <Boxes className="w-4 h-4 text-slate-400" />
+            </button>
+            <button
               onClick={() => { setActiveView('needs-feed'); setMobileMenuOpen(false); }}
               className="text-left px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded"
             >
@@ -258,6 +294,13 @@ export default function Navbar() {
               >
                 <span>Donor Login</span>
                 <Heart className="w-4 h-4 text-emerald-600" />
+              </button>
+              <button
+                onClick={() => { setActiveView('volunteer-login'); setMobileMenuOpen(false); }}
+                className="w-full text-left px-3 py-2 rounded text-sm font-medium bg-indigo-50 text-indigo-900 border border-indigo-200 flex items-center justify-between"
+              >
+                <span>Volunteer Login</span>
+                <Users className="w-4 h-4 text-indigo-600" />
               </button>
               <button
                 onClick={() => { setActiveView('receiver-login'); setMobileMenuOpen(false); }}
