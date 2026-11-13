@@ -260,10 +260,10 @@ export default function UnifiedHub() {
           >
             <div className="flex items-center gap-2 font-bold text-sm">
               <Building2 className="w-4 h-4 text-blue-600" />
-              <span>Helping Organization Mode</span>
+              <span>Helping Organization (Dual: Donate & Receive)</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              View matching supply vs. demand, dispatch convoys & manage inventory.
+              Donate bulk supplies to camps with <strong>+</strong> or <strong>Request</strong> needs for your shelters.
             </p>
           </button>
         </div>
@@ -357,35 +357,48 @@ export default function UnifiedHub() {
                     </div>
                   </div>
 
-                  {/* Right: Graphic Stepper (+ / -) */}
-                  {activeRoleTab === 'donor' && (
-                    <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-300 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleDecrement(item.id)}
-                        disabled={count === 0}
-                        className="w-8 h-8 rounded bg-white hover:bg-slate-200 text-slate-800 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
-                        title="Remove one (-)"
-                      >
-                        <Minus className="w-4 h-4 stroke-[3]" />
-                      </button>
+                  {/* Right: Graphic Stepper (+ / -) & Request Controls */}
+                  {(activeRoleTab === 'donor' || activeRoleTab === 'organization') && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-300">
+                        <button
+                          type="button"
+                          onClick={() => handleDecrement(item.id)}
+                          disabled={count === 0}
+                          className="w-8 h-8 rounded bg-white hover:bg-slate-200 text-slate-800 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                          title="Remove one (-)"
+                        >
+                          <Minus className="w-4 h-4 stroke-[3]" />
+                        </button>
 
-                      <input
-                        type="number"
-                        min="0"
-                        value={count}
-                        onChange={(e) => handleSetQuantity(item.id, e.target.value)}
-                        className="w-10 text-center font-bold text-sm text-slate-900 font-mono bg-transparent outline-none"
-                      />
+                        <input
+                          type="number"
+                          min="0"
+                          value={count}
+                          onChange={(e) => handleSetQuantity(item.id, e.target.value)}
+                          className="w-10 text-center font-bold text-sm text-slate-900 font-mono bg-transparent outline-none"
+                        />
 
-                      <button
-                        type="button"
-                        onClick={() => handleIncrement(item.id)}
-                        className="w-8 h-8 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
-                        title="Add one (+)"
-                      >
-                        <Plus className="w-4 h-4 stroke-[3]" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleIncrement(item.id)}
+                          className="w-8 h-8 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                          title="Donate one (+)"
+                        >
+                          <Plus className="w-4 h-4 stroke-[3]" />
+                        </button>
+                      </div>
+
+                      {activeRoleTab === 'organization' && (
+                        <button
+                          onClick={() => setRequestTargetItem(item)}
+                          className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors"
+                          title="Post request for this item for your shelter"
+                        >
+                          <Package className="w-3.5 h-3.5" />
+                          <span>Request</span>
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -423,16 +436,16 @@ export default function UnifiedHub() {
 
               {/* Bottom Card Footer */}
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                {activeRoleTab === 'donor' && (
+                {(activeRoleTab === 'donor' || activeRoleTab === 'organization') && (
                   <>
                     <span className="text-slate-500 font-medium">
                       {count > 0 ? (
                         <span className="text-emerald-700 font-bold flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" />
-                          <span>{count} {item.unit} selected</span>
+                          <span>{count} {item.unit} selected to donate</span>
                         </span>
                       ) : (
-                        <span>Use + to add to donation</span>
+                        <span>{activeRoleTab === 'organization' ? 'Use + to donate or Request button' : 'Use + to add to donation'}</span>
                       )}
                     </span>
 
@@ -452,23 +465,14 @@ export default function UnifiedHub() {
                     Click 'Request' to post shelter need
                   </span>
                 )}
-
-                {activeRoleTab === 'organization' && (
-                  <button
-                    onClick={() => setActiveView('org-portal')}
-                    className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded transition-colors text-center"
-                  >
-                    View & Dispatch in Org Desk
-                  </button>
-                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* STICKY BOTTOM DONATION SUMMARY TRAY FOR DONORS */}
-      {activeRoleTab === 'donor' && totalSelectedUnits > 0 && (
+      {/* STICKY BOTTOM DONATION SUMMARY TRAY FOR DONORS & ORGANIZATIONS */}
+      {(activeRoleTab === 'donor' || activeRoleTab === 'organization') && totalSelectedUnits > 0 && (
         <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t-2 border-emerald-600 shadow-2xl p-4 sm:p-5">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
