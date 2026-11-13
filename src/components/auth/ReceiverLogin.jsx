@@ -10,6 +10,8 @@ export default function ReceiverLogin() {
   const [formData, setFormData] = useState({
     name: '',
     campName: '',
+    shelterName: '',
+    pincode: '',
     designation: 'Camp Coordinator',
     zoneName: '',
     phone: '',
@@ -178,18 +180,36 @@ export default function ReceiverLogin() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Camp Location / Address
-            </label>
-            <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Camp Location / Address
+              </label>
+              <div className="relative">
+                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Street, Landmark, or Sector"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Postal PIN Code <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="Address or landmark"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                required
+                maxLength="6"
+                pattern="[0-9]{6}"
+                value={formData.pincode}
+                onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                placeholder="e.g. 682001 (6 digits)"
+                className="w-full px-3 py-2 text-sm font-mono font-semibold border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
               />
             </div>
           </div>

@@ -101,7 +101,9 @@ export function DataProvider({ children }) {
     const request = {
       id: `REQ-${Math.floor(100 + Math.random() * 900)}`,
       zoneName: newReq.zoneName || 'Calamity Sector',
-      campName: newReq.campName || 'Relief Shelter',
+      campName: newReq.campName || newReq.shelterName || 'Relief Camp / Shelter',
+      shelterName: newReq.shelterName || newReq.campName || 'Relief Camp / Shelter',
+      pincode: newReq.pincode ? String(newReq.pincode).trim() : '',
       requesterName: newReq.requesterName || 'Camp Lead',
       requesterRole: newReq.requesterRole || 'Camp Representative',
       requesterPhone: newReq.requesterPhone || '',

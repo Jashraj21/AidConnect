@@ -25,9 +25,11 @@ export default function PublicReliefFeed() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchItem = req.itemName.toLowerCase().includes(q);
-      const matchCamp = req.campName.toLowerCase().includes(q);
+      const matchCamp = (req.campName || '').toLowerCase().includes(q);
+      const matchShelter = (req.shelterName || '').toLowerCase().includes(q);
+      const matchPin = (req.pincode || '').includes(q);
       const matchNote = (req.note || '').toLowerCase().includes(q);
-      if (!matchItem && !matchCamp && !matchNote) return false;
+      if (!matchItem && !matchCamp && !matchShelter && !matchNote && !matchPin) return false;
     }
     return true;
   });
@@ -150,10 +152,18 @@ export default function PublicReliefFeed() {
 
                   <div>
                     <h3 className="font-bold text-slate-900 text-base leading-snug">{req.itemName}</h3>
-                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{req.campName}</span>
+                    <div className="text-xs text-slate-700 mt-1 flex flex-wrap items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span className="font-semibold">{req.campName || req.shelterName}</span>
+                      {req.pincode && (
+                        <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200">
+                          PIN: {req.pincode}
+                        </span>
+                      )}
                     </div>
+                    {req.dropLocation && (
+                      <div className="text-[11px] text-slate-500 pl-4">Gate / Point: {req.dropLocation}</div>
+                    )}
                     {req.zoneName && (
                       <div className="text-[11px] text-slate-400 pl-4">{req.zoneName}</div>
                     )}

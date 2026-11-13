@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { Building, MapPin, ArrowRight, Plus } from 'lucide-react';
+import { Building, MapPin, ArrowRight, Plus, Search } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CampDirectory() {
   const { requests } = useData();
   const { setActiveView } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Group requests by camp name
   const campsMap = {};
   requests.forEach(r => {
-    if (!campsMap[r.campName]) {
-      campsMap[r.campName] = {
-        name: r.campName,
+    const key = r.campName || r.shelterName || 'Relief Camp';
+    if (!campsMap[key]) {
+      campsMap[key] = {
+        name: key,
+        shelterName: r.shelterName || key,
+        pincode: r.pincode || '',
         zoneName: r.zoneName || 'Calamity Sector',
         leadName: r.requesterName || 'Camp Contact',
         phone: r.requesterPhone || '',
@@ -21,10 +25,23 @@ export default function CampDirectory() {
         needsCount: 0
       };
     }
-    campsMap[r.campName].needsCount += 1;
+    campsMap[key].needsCount += 1;
+    if (!campsMap[key].pincode && r.pincode) campsMap[key].pincode = r.pincode;
   });
 
-  const campsList = Object.values(campsMap);
+  const allCamps = Object.values(campsMap);
+
+  const filteredCamps = allCamps.filter(c => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = c.name.toLowerCase().includes(q);
+      const matchShelter = c.shelterName.toLowerCase().includes(q);
+      const matchPin = c.pincode.includes(q);
+      const matchLoc = c.location.toLowerCase().includes(q);
+      if (!matchName && !matchShelter && !matchPin && !matchLoc) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-6">
@@ -47,14 +64,28 @@ export default function CampDirectory() {
         </button>
       </div>
 
-      {campsList.length === 0 ? (
+      {/* Search Toolbar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-xs">
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search camps by shelter name, PIN code (e.g. 682001), or area..."
+            className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md focus:ring-1 focus:ring-slate-900 outline-none"
+          />
+        </div>
+      </div>
+
+      {filteredCamps.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-3">
           <div className="w-12 h-12 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto">
             <Building className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-800">No camps registered yet</h3>
+          <h3 className="text-base font-bold text-slate-800">No camps matching criteria</h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            When a camp coordinator or evacuee posts a relief requirement, their camp details will appear here.
+            When a camp coordinator posts a relief requirement, their camp details and PIN code will appear here.
           </p>
           <div className="pt-2">
             <button
@@ -67,15 +98,23 @@ export default function CampDirectory() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {campsList.map((camp, idx) => (
+          {filteredCamps.map((camp, idx) => (
             <div
               key={idx}
               className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
             >
               <div className="space-y-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  {camp.zoneName}
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    {camp.zoneName}
+                  </span>
+                  {camp.pincode && (
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-amber-700" />
+                      <span>PIN: {camp.pincode}</span>
+                    </span>
+                  )}
+                </div>
 
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">{camp.name}</h3>

@@ -152,6 +152,8 @@ export default function OrgDashboard({ onOpenManifest }) {
 
   const [orgRequestData, setOrgRequestData] = useState({
     campName: '',
+    shelterName: '',
+    pincode: '',
     category: 'WATER',
     itemName: '',
     quantityNeeded: 25,
@@ -167,7 +169,9 @@ export default function OrgDashboard({ onOpenManifest }) {
 
     addRequest({
       zoneName: 'Calamity Sector',
-      campName: orgRequestData.campName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
+      campName: orgRequestData.campName || orgRequestData.shelterName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
+      shelterName: orgRequestData.shelterName || orgRequestData.campName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
+      pincode: orgRequestData.pincode || '',
       requesterName: currentUser?.coordinatorName || currentUser?.orgName || 'Operations Officer',
       requesterRole: 'Organization Field Lead',
       requesterPhone: currentUser?.phone || '',
@@ -182,6 +186,8 @@ export default function OrgDashboard({ onOpenManifest }) {
 
     setOrgRequestData({
       campName: '',
+      shelterName: '',
+      pincode: '',
       category: 'WATER',
       itemName: '',
       quantityNeeded: 25,
@@ -368,8 +374,10 @@ export default function OrgDashboard({ onOpenManifest }) {
       const matchId = req.id.toLowerCase().includes(q);
       const matchItem = req.itemName.toLowerCase().includes(q);
       const matchCamp = (req.campName || '').toLowerCase().includes(q);
+      const matchShelter = (req.shelterName || '').toLowerCase().includes(q);
       const matchReq = (req.requesterName || '').toLowerCase().includes(q);
-      if (!matchId && !matchItem && !matchCamp && !matchReq) return false;
+      const matchPin = (req.pincode || '').includes(q);
+      if (!matchId && !matchItem && !matchCamp && !matchShelter && !matchReq && !matchPin) return false;
     }
     return true;
   });
@@ -691,7 +699,15 @@ export default function OrgDashboard({ onOpenManifest }) {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-1">
                           <div className="text-base font-bold text-slate-900">{req.itemName}</div>
-                          <div className="text-slate-700 font-medium">Relief Camp: <strong>{req.campName}</strong></div>
+                          <div className="flex flex-wrap items-center gap-2 text-slate-700 font-medium">
+                            <span>Relief Camp / Shelter: <strong>{req.campName || req.shelterName}</strong></span>
+                            {req.pincode && (
+                              <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-900 border border-blue-200">
+                                <MapPin className="w-3 h-3 text-blue-600" />
+                                <span>PIN: {req.pincode}</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="text-slate-500 text-[11px]">
                             Requester: {req.requesterName} {req.requesterPhone ? `• Tel: ${req.requesterPhone}` : ''}
                             {req.dropLocation ? ` • Gate: ${req.dropLocation}` : ''}
@@ -943,21 +959,39 @@ export default function OrgDashboard({ onOpenManifest }) {
               </div>
 
               <form onSubmit={handleOrgCreateRequest} className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Shelter / Camp Name <span className="text-red-500">*</span>
+                      Relief Camp / Shelter Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={orgRequestData.campName}
-                      onChange={(e) => setOrgRequestData({ ...orgRequestData, campName: e.target.value })}
+                      onChange={(e) => setOrgRequestData({ ...orgRequestData, campName: e.target.value, shelterName: e.target.value })}
                       placeholder={`e.g. ${currentUser?.orgName || 'NGO'} Sector Camp #2`}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-semibold"
                     />
                   </div>
 
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Postal PIN Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength="6"
+                      pattern="[0-9]{6}"
+                      value={orgRequestData.pincode}
+                      onChange={(e) => setOrgRequestData({ ...orgRequestData, pincode: e.target.value.replace(/\D/g, '') })}
+                      placeholder="e.g. 682001 (6 digits)"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
                       Category <span className="text-red-500">*</span>
@@ -1093,7 +1127,13 @@ export default function OrgDashboard({ onOpenManifest }) {
                           <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                             {req.id}
                           </span>
-                          <span className="font-bold text-slate-800">{req.campName}</span>
+                          <span className="font-bold text-slate-800">{req.campName || req.shelterName}</span>
+                          {req.pincode && (
+                            <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200">
+                              <MapPin className="w-2.5 h-2.5 text-amber-600" />
+                              <span>PIN: {req.pincode}</span>
+                            </span>
+                          )}
                           <span className="text-slate-500">({req.category})</span>
                         </div>
 

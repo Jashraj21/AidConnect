@@ -36,13 +36,16 @@ export default function ReceiverDashboard() {
 
   // Form State for New Request
   const [formData, setFormData] = useState({
+    campName: currentUser?.campName || currentUser?.shelterName || '',
+    shelterName: currentUser?.shelterName || currentUser?.campName || '',
+    pincode: currentUser?.pincode || '',
     category: 'WATER',
     itemName: '',
     quantityNeeded: 10,
     urgency: 'HIGH',
     peopleCount: '',
     note: '',
-    dropLocation: ''
+    dropLocation: currentUser?.location || ''
   });
 
   // Filter requests for this camp
@@ -72,7 +75,9 @@ export default function ReceiverDashboard() {
       const matchItem = req.itemName.toLowerCase().includes(q);
       const matchNote = (req.note || '').toLowerCase().includes(q);
       const matchLoc = (req.dropLocation || '').toLowerCase().includes(q);
-      if (!matchId && !matchItem && !matchNote && !matchLoc) return false;
+      const matchCamp = (req.campName || '').toLowerCase().includes(q);
+      const matchPin = (req.pincode || '').includes(q);
+      if (!matchId && !matchItem && !matchNote && !matchLoc && !matchCamp && !matchPin) return false;
     }
     return true;
   });
@@ -84,7 +89,9 @@ export default function ReceiverDashboard() {
 
     addRequest({
       zoneName: currentUser?.zoneName || 'Affected Zone',
-      campName: currentUser?.campName || 'Relief Shelter',
+      campName: formData.campName || currentUser?.campName || currentUser?.shelterName || 'Relief Camp / Shelter',
+      shelterName: formData.shelterName || formData.campName || currentUser?.shelterName || 'Relief Camp / Shelter',
+      pincode: formData.pincode || currentUser?.pincode || '',
       requesterName: currentUser?.name || 'Camp Representative',
       requesterRole: currentUser?.designation || 'Camp Coordinator',
       requesterPhone: currentUser?.phone || '',
@@ -98,13 +105,16 @@ export default function ReceiverDashboard() {
     });
 
     setFormData({
+      campName: currentUser?.campName || currentUser?.shelterName || '',
+      shelterName: currentUser?.shelterName || currentUser?.campName || '',
+      pincode: currentUser?.pincode || '',
       category: 'WATER',
       itemName: '',
       quantityNeeded: 10,
       urgency: 'HIGH',
       peopleCount: '',
       note: '',
-      dropLocation: ''
+      dropLocation: currentUser?.location || ''
     });
     setShowNewRequestForm(false);
   };
@@ -115,6 +125,9 @@ export default function ReceiverDashboard() {
     if (!editingRequest || !editingRequest.itemName.trim()) return;
 
     updateRequest(editingRequest.id, {
+      campName: editingRequest.campName,
+      shelterName: editingRequest.shelterName || editingRequest.campName,
+      pincode: editingRequest.pincode,
       itemName: editingRequest.itemName,
       category: editingRequest.category,
       quantityNeeded: parseInt(editingRequest.quantityNeeded, 10) || 1,
@@ -153,8 +166,14 @@ export default function ReceiverDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-slate-900">
-                  {currentUser?.campName || 'Relief Camp'}
+                  {currentUser?.campName || currentUser?.shelterName || 'Relief Camp'}
                 </h1>
+                {currentUser?.pincode && (
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-slate-500" />
+                    <span>PIN: {currentUser.pincode}</span>
+                  </span>
+                )}
                 <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
                   Receiver Portal
                 </span>
@@ -225,6 +244,38 @@ export default function ReceiverDashboard() {
           </div>
 
           <form onSubmit={handleCreateRequest} className="space-y-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Relief Camp / Shelter Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.campName}
+                  onChange={(e) => setFormData({ ...formData, campName: e.target.value, shelterName: e.target.value })}
+                  placeholder="e.g. St. Jude Relief Shelter"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Postal PIN Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength="6"
+                  pattern="[0-9]{6}"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                  placeholder="e.g. 682001 (6 digits)"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-mono font-bold"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
@@ -362,6 +413,30 @@ export default function ReceiverDashboard() {
             </div>
 
             <form onSubmit={handleUpdateRequest} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Camp / Shelter Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingRequest.campName || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, campName: e.target.value, shelterName: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Postal PIN Code</label>
+                  <input
+                    type="text"
+                    maxLength="6"
+                    pattern="[0-9]{6}"
+                    value={editingRequest.pincode || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, pincode: e.target.value.replace(/\D/g, '') })}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none font-mono font-bold"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Category</label>
@@ -622,10 +697,19 @@ export default function ReceiverDashboard() {
                     <div className="space-y-1">
                       <h3 className="font-bold text-slate-900 text-base">{req.itemName}</h3>
                       {req.note && <p className="text-xs text-slate-600 italic">"{req.note}"</p>}
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
-                        <span>Required: <strong>{req.quantityNeeded} units</strong></span>
+                      <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 pt-1">
+                        <span className="font-semibold text-slate-900">
+                          {req.campName || req.shelterName || 'Relief Camp'}
+                        </span>
+                        {req.pincode && (
+                          <span className="inline-flex items-center gap-1 font-mono font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 text-[11px]">
+                            <MapPin className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>PIN: {req.pincode}</span>
+                          </span>
+                        )}
+                        <span>• Required: <strong>{req.quantityNeeded} units</strong></span>
                         {req.dropLocation && <span>• Handover: {req.dropLocation}</span>}
-                        {req.verifiedByOrg && <span>• Verified by: {req.verifiedByOrg}</span>}
+                        {req.verifiedByOrg && <span>• Verified: {req.verifiedByOrg}</span>}
                       </div>
                     </div>
 

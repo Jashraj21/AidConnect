@@ -78,7 +78,10 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
               </div>
               <div className="flex justify-between border-b border-slate-200 pb-1.5">
                 <span className="text-slate-500">Destination Camp:</span>
-                <span className="font-medium text-slate-800">{request.campName}</span>
+                <span className="font-medium text-slate-800">
+                  {request.shelterName || request.campName}
+                  {request.pincode && ` (PIN: ${request.pincode})`}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Delivery Mode:</span>
@@ -103,9 +106,14 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
                 </span>
               </div>
               <div className="font-bold text-sm text-slate-900">{request.itemName}</div>
-              <div className="text-slate-600 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span>{request.campName}</span>
+              <div className="text-slate-600 flex items-center gap-1.5 flex-wrap">
+                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{request.shelterName || request.campName}</span>
+                {request.pincode && (
+                  <span className="font-mono bg-amber-50 text-amber-800 border border-amber-200 px-1 py-0.2 rounded text-[10px] font-bold">
+                    PIN: {request.pincode}
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200 text-slate-500">
                 <span>Needed: <strong>{request.quantityNeeded}</strong></span>

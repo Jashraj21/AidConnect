@@ -208,8 +208,10 @@ export default function DonorDashboard() {
       const q = campSearchQuery.toLowerCase();
       const matchItem = req.itemName.toLowerCase().includes(q);
       const matchCamp = (req.campName || '').toLowerCase().includes(q);
+      const matchShelter = (req.shelterName || '').toLowerCase().includes(q);
+      const matchPin = (req.pincode || '').includes(q);
       const matchNote = (req.note || '').toLowerCase().includes(q);
-      if (!matchItem && !matchCamp && !matchNote) return false;
+      if (!matchItem && !matchCamp && !matchShelter && !matchPin && !matchNote) return false;
     }
     return true;
   });
@@ -480,7 +482,7 @@ export default function DonorDashboard() {
                   type="text"
                   value={campSearchQuery}
                   onChange={(e) => setCampSearchQuery(e.target.value)}
-                  placeholder="Search camp shortages by item, camp name..."
+                  placeholder="Search camp shortages by item, shelter name, PIN code..."
                   className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
@@ -550,7 +552,14 @@ export default function DonorDashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2 space-y-1">
                           <h3 className="font-bold text-slate-900 text-base">{req.itemName}</h3>
-                          <div className="text-slate-700">Relief Camp: <strong>{req.campName}</strong></div>
+                          <div className="text-slate-700 flex flex-wrap items-center gap-1.5">
+                            <span>Relief Camp / Shelter: <strong>{req.shelterName || req.campName}</strong></span>
+                            {req.pincode && (
+                              <span className="font-mono bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded text-[11px] font-bold">
+                                PIN: {req.pincode}
+                              </span>
+                            )}
+                          </div>
                           {req.dropLocation && <div className="text-slate-500">Drop Point: {req.dropLocation}</div>}
                           {req.note && <div className="text-slate-600 italic">"{req.note}"</div>}
                         </div>

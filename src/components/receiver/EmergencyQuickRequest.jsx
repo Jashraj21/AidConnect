@@ -11,6 +11,8 @@ export default function EmergencyQuickRequest() {
   const [formData, setFormData] = useState({
     zoneName: '',
     campName: '',
+    shelterName: '',
+    pincode: '',
     requesterName: '',
     requesterPhone: '',
     category: 'WATER',
@@ -88,7 +90,7 @@ export default function EmergencyQuickRequest() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
                   Calamity Affected Zone / District <span className="text-red-500">*</span>
@@ -105,15 +107,31 @@ export default function EmergencyQuickRequest() {
 
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
-                  Camp / Settlement Name <span className="text-red-500">*</span>
+                  Relief Camp / Shelter Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.campName}
-                  onChange={(e) => setFormData({ ...formData, campName: e.target.value })}
-                  placeholder="e.g. Relief Camp A"
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-red-500 outline-none"
+                  onChange={(e) => setFormData({ ...formData, campName: e.target.value, shelterName: e.target.value })}
+                  placeholder="e.g. St. Jude Relief Shelter"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-red-500 outline-none font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Postal PIN Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength="6"
+                  pattern="[0-9]{6}"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                  placeholder="e.g. 682001 (6 digits)"
+                  className="w-full px-3 py-2 text-xs font-mono font-bold border border-slate-300 rounded-md focus:ring-1 focus:ring-red-500 outline-none"
                 />
               </div>
             </div>
