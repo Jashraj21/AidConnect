@@ -6,18 +6,34 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('donation_auth_user');
-      if (saved && (saved.includes('usr-donor-1') || saved.includes('usr-recv-1') || saved.includes('usr-org-1'))) {
-        localStorage.removeItem('donation_auth_user');
-        return null;
-      }
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
     }
   });
 
-  const [activeView, setActiveView] = useState('home'); 
-  // 'home', 'needs-feed', 'camps', 'transparency', 'donor-login', 'receiver-login', 'org-login', 'donor-portal', 'receiver-portal', 'org-portal', 'emergency-quick'
+  const [activeView, setActiveView] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('donation_auth_user');
+      const savedView = localStorage.getItem('donation_active_view');
+
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        // If a specific inner view was open (e.g. supply-hub, needs-feed, camps, transparency, or portal), preserve it
+        if (savedView && !['donor-login', 'receiver-login', 'org-login'].includes(savedView)) {
+          return savedView;
+        }
+        // Fallback to role-specific portal
+        if (u.role === 'DONOR') return 'donor-portal';
+        if (u.role === 'RECEIVER') return 'receiver-portal';
+        if (u.role === 'ORGANIZATION') return 'org-portal';
+      }
+
+      return savedView || 'home';
+    } catch (e) {
+      return 'home';
+    }
+  });
 
   useEffect(() => {
     try {
@@ -27,9 +43,19 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('donation_auth_user');
       }
     } catch (e) {
-      console.error('Failed to save auth state', e);
+      console.error('Failed to save auth user state', e);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    try {
+      if (activeView) {
+        localStorage.setItem('donation_active_view', activeView);
+      }
+    } catch (e) {
+      console.error('Failed to save active view state', e);
+    }
+  }, [activeView]);
 
   const loginAsDonor = (formData) => {
     const user = {
@@ -49,6 +75,8 @@ export function AuthProvider({ children }) {
       const list = saved ? JSON.parse(saved) : [];
       const filtered = list.filter(d => (d.phone && d.phone !== user.phone) || (d.email && d.email !== user.email));
       localStorage.setItem('donation_registered_donors', JSON.stringify([user, ...filtered]));
+      localStorage.setItem('donation_auth_user', JSON.stringify(user));
+      localStorage.setItem('donation_active_view', 'donor-portal');
     } catch {}
 
     setCurrentUser(user);
@@ -70,6 +98,10 @@ export function AuthProvider({ children }) {
       location: formData.location || '',
       shelterSize: formData.shelterSize || ''
     };
+    try {
+      localStorage.setItem('donation_auth_user', JSON.stringify(user));
+      localStorage.setItem('donation_active_view', 'receiver-portal');
+    } catch {}
     setCurrentUser(user);
     setActiveView('receiver-portal');
     return user;
@@ -87,6 +119,10 @@ export function AuthProvider({ children }) {
       pincode: formData.pincode || '',
       verified: true
     };
+    try {
+      localStorage.setItem('donation_auth_user', JSON.stringify(user));
+      localStorage.setItem('donation_active_view', 'org-portal');
+    } catch {}
     setCurrentUser(user);
     setActiveView('org-portal');
     return user;
@@ -94,6 +130,10 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setCurrentUser(null);
+    try {
+      localStorage.removeItem('donation_auth_user');
+      localStorage.setItem('donation_active_view', 'home');
+    } catch {}
     setActiveView('home');
   };
 

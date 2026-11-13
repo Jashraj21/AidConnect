@@ -4,13 +4,15 @@ import {
   MapPin,
   Search,
   Plus,
-  IndianRupee
+  IndianRupee,
+  Phone
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { CATEGORIES } from '../../data/initialData';
 import PledgeModal from '../donor/PledgeModal';
 import MoneyDonationModal from '../donor/MoneyDonationModal';
+import DirectReceiverContactModal from '../common/DirectReceiverContactModal';
 
 export default function PublicReliefFeed() {
   const { requests } = useData();
@@ -21,6 +23,7 @@ export default function PublicReliefFeed() {
   const [searchQuery, setSearchQuery] = useState('');
   const [targetRequest, setTargetRequest] = useState(null);
   const [moneyCamp, setMoneyCamp] = useState(null);
+  const [contactRequest, setContactRequest] = useState(null);
 
   const filteredRequests = requests.filter(req => {
     if (selectedCategory !== 'ALL' && req.category !== selectedCategory) return false;
@@ -170,10 +173,25 @@ export default function PublicReliefFeed() {
                     {req.zoneName && (
                       <div className="text-[11px] text-slate-400 pl-4">{req.zoneName}</div>
                     )}
+
+                    {/* Receiver contact badge */}
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-200">
+                      <span>Receiver: <strong className="text-slate-800">{req.requesterName || 'Camp Lead'}</strong></span>
+                      {req.requesterPhone && (
+                        <a
+                          href={`tel:${req.requesterPhone}`}
+                          className="font-mono text-emerald-700 underline font-semibold flex items-center gap-0.5 hover:text-emerald-800"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{req.requesterPhone}</span>
+                        </a>
+                      )}
+                      {req.peopleCount > 0 && <span className="text-slate-400">• ~{req.peopleCount} sheltered</span>}
+                    </div>
                   </div>
 
                   {req.note && (
-                    <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded border border-slate-200/80 italic">
+                    <p className="text-xs text-slate-600 bg-amber-50/50 p-2.5 rounded border border-amber-200/60 italic">
                       "{req.note}"
                     </p>
                   )}
@@ -205,7 +223,16 @@ export default function PublicReliefFeed() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setContactRequest(req)}
+                      className="px-2 py-1.5 rounded-md text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors flex items-center gap-1 shadow-sm"
+                      title="Contact receiver directly"
+                    >
+                      <Phone className="w-3 h-3 text-emerald-700" />
+                      <span>Contact</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setMoneyCamp(req)}
@@ -247,6 +274,14 @@ export default function PublicReliefFeed() {
         <MoneyDonationModal
           defaultCamp={moneyCamp}
           onClose={() => setMoneyCamp(null)}
+        />
+      )}
+
+      {/* DIRECT CONTACT RECEIVER MODAL */}
+      {contactRequest && (
+        <DirectReceiverContactModal
+          request={contactRequest}
+          onClose={() => setContactRequest(null)}
         />
       )}
     </div>
