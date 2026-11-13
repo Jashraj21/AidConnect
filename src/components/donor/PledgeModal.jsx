@@ -13,7 +13,8 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
   const [donorName, setDonorName] = useState(currentUser?.name || '');
   const [donorEmail, setDonorEmail] = useState(currentUser?.email || '');
   const [donorPhone, setDonorPhone] = useState(currentUser?.phone || '');
-  const [deliveryMethod, setDeliveryMethod] = useState('DROPOFF_AT_HUB');
+  const [donorPincode, setDonorPincode] = useState(currentUser?.pincode || '');
+  const [deliveryMethod, setDeliveryMethod] = useState('DIRECT_CAMP_DROPOFF');
   const [dropoffHub, setDropoffHub] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedPledge, setCompletedPledge] = useState(null);
@@ -22,15 +23,20 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const destination = deliveryMethod === 'DIRECT_CAMP_DROPOFF'
+      ? `Direct Parcel Handover to ${request.shelterName || request.campName} Gate (PIN ${request.pincode})`
+      : (dropoffHub || 'Designated Collection Center');
+
     const pledge = addPledge({
       requestId: request.id,
       donorName: donorName || 'Donor',
       donorEmail,
       donorPhone,
+      pincode: donorPincode,
       itemName: request.itemName,
       quantity: parseInt(quantity, 10),
       deliveryMethod,
-      dropoffHub: dropoffHub || 'Designated Collection Center'
+      dropoffHub: destination
     });
 
     setIsSubmitting(false);
@@ -148,27 +154,56 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
                 onChange={(e) => setDeliveryMethod(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white font-medium outline-none"
               >
+                <option value="DIRECT_CAMP_DROPOFF">Direct Parcel Handover to Camp Gate (Deliver directly to receiver)</option>
                 <option value="DROPOFF_AT_HUB">Drop off at Staging Hub / Collection Center</option>
                 <option value="DIRECT_COURIER">Direct Courier / Transport Delivery</option>
                 <option value="SPONSOR_PURCHASE">Sponsor Direct Procurement</option>
               </select>
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Staging Point or Collection Hub
-              </label>
-              <input
-                type="text"
-                value={dropoffHub}
-                onChange={(e) => setDropoffHub(e.target.value)}
-                placeholder="e.g. Nearest Community Center / Hub"
-                className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
-              />
-            </div>
+            {deliveryMethod === 'DIRECT_CAMP_DROPOFF' ? (
+              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs space-y-1 text-emerald-950">
+                <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Direct Delivery to Shelter Contact:</span>
+                </div>
+                <div>Receiver: <strong>{request.requesterName || 'Camp Coordinator'}</strong></div>
+                {request.requesterPhone && (
+                  <div>Direct Phone: <a href={`tel:${request.requesterPhone}`} className="font-mono font-bold text-emerald-800 underline">{request.requesterPhone}</a></div>
+                )}
+                <div>Destination: <strong>{request.shelterName || request.campName}</strong> (PIN: {request.pincode})</div>
+                <div>Drop Landmark: {request.dropLocation || 'Camp Main Gate'}</div>
+              </div>
+            ) : (
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Staging Point or Collection Hub
+                </label>
+                <input
+                  type="text"
+                  value={dropoffHub}
+                  onChange={(e) => setDropoffHub(e.target.value)}
+                  placeholder="e.g. Nearest Community Center / Hub"
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
+                />
+              </div>
+            )}
 
             {/* Donor info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Your PIN Code</label>
+                <input
+                  type="text"
+                  maxLength="6"
+                  pattern="[0-9]{6}"
+                  value={donorPincode}
+                  onChange={(e) => setDonorPincode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 682001"
+                  className="w-full px-3 py-1.5 font-mono font-bold border border-slate-300 rounded outline-none"
+                />
+              </div>
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Your Name</label>
                 <input
@@ -177,30 +212,30 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
                   value={donorName}
                   onChange={(e) => setDonorName(e.target.value)}
                   placeholder="Name"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Email</label>
+                <label className="block font-semibold text-slate-700 mb-1">Mobile Phone <span className="text-red-500">*</span></label>
                 <input
-                  type="email"
+                  type="tel"
                   required
-                  value={donorEmail}
-                  onChange={(e) => setDonorEmail(e.target.value)}
-                  placeholder="Email"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
+                  value={donorPhone}
+                  onChange={(e) => setDonorPhone(e.target.value)}
+                  placeholder="Phone"
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
+              <label className="block font-semibold text-slate-700 mb-1">Email (Optional)</label>
               <input
-                type="tel"
-                value={donorPhone}
-                onChange={(e) => setDonorPhone(e.target.value)}
-                placeholder="Phone"
+                type="email"
+                value={donorEmail}
+                onChange={(e) => setDonorEmail(e.target.value)}
+                placeholder="name@example.com"
                 className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
               />
             </div>

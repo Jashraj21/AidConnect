@@ -43,6 +43,14 @@ export function AuthProvider({ children }) {
       donorType: formData.donorType || 'Individual',
       pledgesCount: 0
     };
+
+    try {
+      const saved = localStorage.getItem('donation_registered_donors');
+      const list = saved ? JSON.parse(saved) : [];
+      const filtered = list.filter(d => (d.phone && d.phone !== user.phone) || (d.email && d.email !== user.email));
+      localStorage.setItem('donation_registered_donors', JSON.stringify([user, ...filtered]));
+    } catch {}
+
     setCurrentUser(user);
     setActiveView('donor-portal');
     return user;

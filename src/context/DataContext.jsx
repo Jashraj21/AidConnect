@@ -55,6 +55,33 @@ export function DataProvider({ children }) {
     }
   });
 
+  const [registeredDonors, setRegisteredDonors] = useState(() => {
+    try {
+      const saved = localStorage.getItem('donation_registered_donors');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('donation_registered_donors', JSON.stringify(registeredDonors));
+  }, [registeredDonors]);
+
+  const registerDonor = (donorData) => {
+    if (!donorData) return;
+    setRegisteredDonors(prev => {
+      const phone = donorData.phone || '';
+      const email = donorData.email || '';
+      const filtered = prev.filter(d => {
+        if (phone && d.phone === phone) return false;
+        if (email && d.email === email) return false;
+        return true;
+      });
+      return [{ ...donorData, lastActive: new Date().toISOString() }, ...filtered];
+    });
+  };
+
   // Cross-tab live synchronization
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -199,6 +226,7 @@ export function DataProvider({ children }) {
       donorName: pledgeData.donorName || 'Donor',
       donorEmail: pledgeData.donorEmail || '',
       donorPhone: pledgeData.donorPhone || '',
+      pincode: pledgeData.pincode || pledgeData.donorPincode || '',
       itemName: pledgeData.itemName,
       quantity: qty,
       deliveryMethod: pledgeData.deliveryMethod || 'DROPOFF_AT_HUB',
@@ -207,6 +235,17 @@ export function DataProvider({ children }) {
       status: 'CONFIRMED', // CONFIRMED -> IN_TRANSIT -> DELIVERED_TO_HUB -> ACCEPTED
       trackingNotes: pledgeData.trackingNotes || 'Pledge registered by donor'
     };
+
+    if (pledgeData.donorName && (pledgeData.donorPhone || pledgeData.donorEmail)) {
+      registerDonor({
+        id: `DONOR-${Date.now()}`,
+        name: pledgeData.donorName,
+        phone: pledgeData.donorPhone,
+        email: pledgeData.donorEmail,
+        pincode: pledgeData.pincode || pledgeData.donorPincode || '',
+        donorType: 'Pledged Supporter'
+      });
+    }
 
     setPledges(prev => [newPledge, ...prev]);
 
@@ -374,6 +413,8 @@ export function DataProvider({ children }) {
         requests,
         pledges,
         inventory,
+        registeredDonors,
+        registerDonor,
         // Requests CRUD
         addRequest,
         addBatchRequests,

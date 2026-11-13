@@ -34,6 +34,7 @@ import { CATEGORIES, STANDARD_ITEMS } from '../../data/initialData';
 import NearbyCampsFinder from '../common/NearbyCampsFinder';
 import { lookupPincode } from '../../utils/pincodeService';
 import ReceiverCartModal from './ReceiverCartModal';
+import NearestDonorsSection from './NearestDonorsSection';
 
 export default function ReceiverDashboard() {
   const { currentUser } = useAuth();
@@ -405,6 +406,15 @@ export default function ReceiverDashboard() {
         </div>
       </div>
 
+      {/* PROXIMITY ALGORITHM: NEAREST DIRECT DONORS MATCHING THIS RECEIVER */}
+      {currentUser?.pincode && (
+        <NearestDonorsSection
+          pincode={currentUser.pincode}
+          campNeeds={myCampRequests}
+          currentUser={currentUser}
+        />
+      )}
+
       {/* PRIMARY NAVIGATION TABS */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-1">
         <button
@@ -437,6 +447,18 @@ export default function ReceiverDashboard() {
           <span className="bg-slate-200 text-slate-800 font-mono text-[10px] px-1.5 py-0.2 rounded-full font-bold">
             {totalNeeds}
           </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('nearest-donors')}
+          className={`px-4 py-2 text-xs font-bold rounded-t-lg transition-all flex items-center gap-2 ${
+            activeTab === 'nearest-donors'
+              ? 'bg-white border-t-2 border-x border-emerald-600 text-emerald-900 -mb-px'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Truck className="w-4 h-4 text-emerald-600" />
+          <span>Nearest Direct Donors</span>
         </button>
       </div>
 
@@ -849,6 +871,17 @@ export default function ReceiverDashboard() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* TAB 3: NEAREST DIRECT DONORS DEDICATED VIEW */}
+      {activeTab === 'nearest-donors' && (
+        <div className="space-y-4">
+          <NearestDonorsSection
+            pincode={currentUser?.pincode}
+            campNeeds={myCampRequests}
+            currentUser={currentUser}
+          />
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { Package, ArrowRight, Phone, MapPin, Users, Building, Radio, Compass, Ch
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import NearbyCampsFinder from '../common/NearbyCampsFinder';
+import NearestDonorsSection from '../receiver/NearestDonorsSection';
 import { lookupPincode } from '../../utils/pincodeService';
 
 export default function ReceiverLogin() {
@@ -180,6 +181,15 @@ export default function ReceiverLogin() {
             onSelectCamp={handleCampSelect}
             existingRequests={requests}
           />
+
+          {/* Nearest Direct Donors matched by proximity algorithm */}
+          {formData.pincode && formData.pincode.replace(/\D/g, '').length === 6 && (
+            <NearestDonorsSection
+              pincode={formData.pincode}
+              campNeeds={requests.filter(r => r.pincode === formData.pincode)}
+              currentUser={{ name: formData.name, phone: formData.phone, campName: formData.campName }}
+            />
+          )}
 
           {/* Optional Details Accordion / Fields */}
           <div className="pt-2 border-t border-slate-200 space-y-3">
