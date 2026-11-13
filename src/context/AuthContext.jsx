@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
       name: formData.name || 'Anonymous Supporter',
       email: formData.email || '',
       phone: formData.phone || '',
+      pincode: formData.pincode || '',
       city: formData.city || '',
       donorType: formData.donorType || 'Individual',
       pledgesCount: 0
@@ -75,6 +76,7 @@ export function AuthProvider({ children }) {
       regNo: formData.regNo || '',
       email: formData.email || '',
       phone: formData.phone || '',
+      pincode: formData.pincode || '',
       verified: true
     };
     setCurrentUser(user);

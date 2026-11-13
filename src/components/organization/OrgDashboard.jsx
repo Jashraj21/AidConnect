@@ -29,12 +29,15 @@ import {
   ShoppingBag,
   FileCheck2,
   MapPin,
-  Phone
+  Phone,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { CATEGORIES, STANDARD_ITEMS } from '../../data/initialData';
 import DispatchModal from './DispatchModal';
+import NearbyCampsFinder from '../common/NearbyCampsFinder';
+import { lookupPincode } from '../../utils/pincodeService';
 
 export default function OrgDashboard({ onOpenManifest }) {
   const { currentUser } = useAuth();
@@ -167,10 +170,16 @@ export default function OrgDashboard({ onOpenManifest }) {
     e.preventDefault();
     if (!orgRequestData.itemName.trim()) return;
 
+    let resolvedCamp = (orgRequestData.campName || '').trim();
+    if (!resolvedCamp && orgRequestData.pincode) {
+      const match = lookupPincode(orgRequestData.pincode, requests);
+      resolvedCamp = match?.primaryCamp?.name || `${currentUser?.orgName || 'NGO'} Shelter (PIN ${orgRequestData.pincode})`;
+    }
+
     addRequest({
       zoneName: 'Calamity Sector',
-      campName: orgRequestData.campName || orgRequestData.shelterName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
-      shelterName: orgRequestData.shelterName || orgRequestData.campName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
+      campName: resolvedCamp || orgRequestData.shelterName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
+      shelterName: resolvedCamp || orgRequestData.campName || `${currentUser?.orgName || 'NGO'} Relief Shelter`,
       pincode: orgRequestData.pincode || '',
       requesterName: currentUser?.coordinatorName || currentUser?.orgName || 'Operations Officer',
       requesterRole: 'Organization Field Lead',
@@ -961,35 +970,44 @@ export default function OrgDashboard({ onOpenManifest }) {
               <form onSubmit={handleOrgCreateRequest} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Relief Camp / Shelter Name <span className="text-red-500">*</span>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Postal PIN Code <span className="text-red-500">* Required</span>
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={orgRequestData.campName}
-                      onChange={(e) => setOrgRequestData({ ...orgRequestData, campName: e.target.value, shelterName: e.target.value })}
-                      placeholder={`e.g. ${currentUser?.orgName || 'NGO'} Sector Camp #2`}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-semibold"
-                    />
+                    <div className="relative">
+                      <Compass className="w-4 h-4 text-blue-600 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        required
+                        maxLength="6"
+                        pattern="[0-9]{6}"
+                        value={orgRequestData.pincode}
+                        onChange={(e) => setOrgRequestData({ ...orgRequestData, pincode: e.target.value.replace(/\D/g, '') })}
+                        placeholder="e.g. 682001 (6 digits)"
+                        className="w-full pl-9 pr-3 py-2 border-2 border-blue-400 rounded-md outline-none font-mono font-bold bg-blue-50/20"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Postal PIN Code <span className="text-red-500">*</span>
+                    <label className="block font-medium text-slate-700 mb-1">
+                      Relief Camp / Shelter Name <span className="text-slate-400">(Optional — auto-detected)</span>
                     </label>
                     <input
                       type="text"
-                      required
-                      maxLength="6"
-                      pattern="[0-9]{6}"
-                      value={orgRequestData.pincode}
-                      onChange={(e) => setOrgRequestData({ ...orgRequestData, pincode: e.target.value.replace(/\D/g, '') })}
-                      placeholder="e.g. 682001 (6 digits)"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-mono font-bold"
+                      value={orgRequestData.campName}
+                      onChange={(e) => setOrgRequestData({ ...orgRequestData, campName: e.target.value, shelterName: e.target.value })}
+                      placeholder={`Auto-detected from PIN or custom`}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-semibold"
                     />
                   </div>
                 </div>
+
+                <NearbyCampsFinder
+                  pincode={orgRequestData.pincode}
+                  selectedCampName={orgRequestData.campName}
+                  onSelectCamp={(camp) => setOrgRequestData(prev => ({ ...prev, campName: camp.name, shelterName: camp.name, dropLocation: prev.dropLocation || camp.address || camp.type }))}
+                  existingRequests={requests}
+                />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

@@ -23,6 +23,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { CATEGORIES, STANDARD_ITEMS } from '../data/initialData';
+import NearbyCampsFinder from './common/NearbyCampsFinder';
+import { lookupPincode } from '../utils/pincodeService';
 
 export default function UnifiedHub() {
   const { currentUser, setActiveView } = useAuth();
@@ -58,6 +60,7 @@ export default function UnifiedHub() {
   // Single item request modal (for receiver)
   const [requestTargetItem, setRequestTargetItem] = useState(null);
   const [requestQuantity, setRequestQuantity] = useState(20);
+  const [requestPincode, setRequestPincode] = useState(currentUser?.pincode || '');
   const [requestCampName, setRequestCampName] = useState(currentUser?.campName || '');
   const [requestContact, setRequestContact] = useState(currentUser?.phone || '');
   const [requestUrgency, setRequestUrgency] = useState('HIGH');
@@ -164,9 +167,17 @@ export default function UnifiedHub() {
     e.preventDefault();
     if (!requestTargetItem) return;
 
+    let resolvedCamp = requestCampName.trim();
+    if (!resolvedCamp && requestPincode) {
+      const match = lookupPincode(requestPincode, requests);
+      resolvedCamp = match?.primaryCamp?.name || currentUser?.campName || `Shelter (PIN ${requestPincode})`;
+    }
+
     addRequest({
       zoneName: 'Affected Calamity Zone',
-      campName: requestCampName || 'Relief Camp',
+      campName: resolvedCamp || 'Relief Camp',
+      shelterName: resolvedCamp || 'Relief Camp',
+      pincode: requestPincode || currentUser?.pincode || '',
       requesterName: currentUser?.name || 'Camp Representative',
       requesterRole: 'Camp Lead',
       requesterPhone: requestContact,
@@ -676,15 +687,37 @@ export default function UnifiedHub() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Relief Camp / Shelter Name <span className="text-red-500">*</span>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Postal PIN Code <span className="text-red-500">* Required</span>
                   </label>
                   <input
                     type="text"
                     required
+                    maxLength="6"
+                    pattern="[0-9]{6}"
+                    value={requestPincode}
+                    onChange={(e) => setRequestPincode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="e.g. 682001 (6 digits)"
+                    className="w-full px-3 py-1.5 border-2 border-amber-300 rounded font-mono font-bold outline-none bg-amber-50/20"
+                  />
+                </div>
+
+                <NearbyCampsFinder
+                  pincode={requestPincode}
+                  selectedCampName={requestCampName}
+                  onSelectCamp={(camp) => setRequestCampName(camp.name)}
+                  existingRequests={requests}
+                />
+
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">
+                    Relief Camp / Shelter Name <span className="text-slate-400">(Optional — auto-detected)</span>
+                  </label>
+                  <input
+                    type="text"
                     value={requestCampName}
                     onChange={(e) => setRequestCampName(e.target.value)}
-                    placeholder="Camp name"
+                    placeholder="Auto-detected from PIN or enter custom"
                     className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
                   />
                 </div>

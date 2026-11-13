@@ -1,21 +1,36 @@
 import React, { useState } from 'react';
-import { Building2, ArrowRight, Mail, Phone, FileText } from 'lucide-react';
+import { Building2, ArrowRight, Mail, Phone, FileText, Compass, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
+import NearbyCampsFinder from '../common/NearbyCampsFinder';
+import { lookupPincode } from '../../utils/pincodeService';
 
 export default function OrgLogin() {
   const { loginAsOrganization, setActiveView } = useAuth();
+  const { requests } = useData();
 
   const [formData, setFormData] = useState({
+    pincode: '',
+    phone: '',
+    coordinatorName: '',
     orgName: '',
     regNo: '',
-    coordinatorName: '',
-    email: '',
-    phone: ''
+    email: ''
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    loginAsOrganization(formData);
+
+    let resolvedOrg = formData.orgName.trim();
+    if (!resolvedOrg && formData.pincode) {
+      const match = lookupPincode(formData.pincode, requests);
+      resolvedOrg = `Humanitarian Relief Unit (${match?.area || `PIN ${formData.pincode}`})`;
+    }
+
+    loginAsOrganization({
+      ...formData,
+      orgName: resolvedOrg || 'Disaster Relief Organization'
+    });
   };
 
   return (
@@ -42,7 +57,7 @@ export default function OrgLogin() {
             <div>
               <h1 className="text-xl font-bold tracking-tight">Helping Organization Sign In</h1>
               <p className="text-xs text-slate-300">
-                For registered disaster relief NGOs and volunteer rescue groups.
+                Only PIN code, Phone, and Coordinator Name are required. The system links nearby shelters automatically.
               </p>
             </div>
           </div>
@@ -50,24 +65,110 @@ export default function OrgLogin() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 flex items-center justify-between">
+            <span className="font-semibold text-slate-800">
+              Required: <strong className="text-blue-900 font-mono">PIN Code</strong>, <strong className="text-blue-900">Phone</strong> & <strong className="text-blue-900">Coordinator Name</strong>.
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium">
+              Other details optional
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Organization / NGO Name <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Postal PIN Code <span className="text-red-500">* Required</span>
+              </label>
+              <div className="relative">
+                <Compass className="w-4 h-4 text-blue-600 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  required
+                  maxLength="6"
+                  pattern="[0-9]{6}"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                  placeholder="e.g. 682001"
+                  className="w-full pl-9 pr-3 py-2 text-sm font-mono font-bold border-2 border-blue-400 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/20"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Phone Number <span className="text-red-500">* Required</span>
+              </label>
+              <div className="relative">
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Mobile number"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Field Officer Name <span className="text-red-500">* Required</span>
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  required
+                  value={formData.coordinatorName}
+                  onChange={(e) => setFormData({ ...formData, coordinatorName: e.target.value })}
+                  placeholder="Coordinator name"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none font-medium"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Auto-detected Nearby Relief Shelters */}
+          <NearbyCampsFinder
+            pincode={formData.pincode}
+            selectedCampName=""
+            existingRequests={requests}
+          />
+
+          <div className="pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Organization / NGO Name <span className="text-slate-400">(Optional)</span>
               </label>
               <input
                 type="text"
-                required
                 value={formData.orgName}
                 onChange={(e) => setFormData({ ...formData, orgName: e.target.value })}
-                placeholder="Enter organization name"
+                placeholder="Auto-detected from PIN or custom"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Registration / ID Number
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Official Email <span className="text-slate-400">(Optional)</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@organization.org"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Registration / ID Number <span className="text-slate-400">(Optional)</span>
               </label>
               <div className="relative">
                 <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -79,55 +180,6 @@ export default function OrgLogin() {
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
                 />
               </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Field Coordinator / Officer Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.coordinatorName}
-                onChange={(e) => setFormData({ ...formData, coordinatorName: e.target.value })}
-                placeholder="Officer name"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Official Email <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@organization.org"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Contact Phone
-            </label>
-            <div className="relative">
-              <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="Phone number"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
-              />
             </div>
           </div>
 

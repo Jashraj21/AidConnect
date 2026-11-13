@@ -13,11 +13,14 @@ import {
   AlertTriangle,
   MapPin,
   Phone,
-  FileCheck2
+  FileCheck2,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { CATEGORIES } from '../../data/initialData';
+import NearbyCampsFinder from '../common/NearbyCampsFinder';
+import { lookupPincode } from '../../utils/pincodeService';
 
 export default function ReceiverDashboard() {
   const { currentUser } = useAuth();
@@ -87,10 +90,16 @@ export default function ReceiverDashboard() {
     e.preventDefault();
     if (!formData.itemName.trim()) return;
 
+    let resolvedCamp = (formData.campName || '').trim();
+    if (!resolvedCamp && formData.pincode) {
+      const match = lookupPincode(formData.pincode, requests);
+      resolvedCamp = match?.primaryCamp?.name || currentUser?.campName || `Shelter (PIN ${formData.pincode})`;
+    }
+
     addRequest({
       zoneName: currentUser?.zoneName || 'Affected Zone',
-      campName: formData.campName || currentUser?.campName || currentUser?.shelterName || 'Relief Camp / Shelter',
-      shelterName: formData.shelterName || formData.campName || currentUser?.shelterName || 'Relief Camp / Shelter',
+      campName: resolvedCamp || currentUser?.campName || currentUser?.shelterName || 'Relief Camp / Shelter',
+      shelterName: resolvedCamp || currentUser?.shelterName || currentUser?.campName || 'Relief Camp / Shelter',
       pincode: formData.pincode || currentUser?.pincode || '',
       requesterName: currentUser?.name || 'Camp Representative',
       requesterRole: currentUser?.designation || 'Camp Coordinator',
@@ -246,35 +255,45 @@ export default function ReceiverDashboard() {
           <form onSubmit={handleCreateRequest} className="space-y-4 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Relief Camp / Shelter Name <span className="text-red-500">*</span>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Postal PIN Code <span className="text-red-500">* Required</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.campName}
-                  onChange={(e) => setFormData({ ...formData, campName: e.target.value, shelterName: e.target.value })}
-                  placeholder="e.g. St. Jude Relief Shelter"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-semibold"
-                />
+                <div className="relative">
+                  <Compass className="w-4 h-4 text-amber-600 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    required
+                    maxLength="6"
+                    pattern="[0-9]{6}"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                    placeholder="e.g. 682001 (6 digits)"
+                    className="w-full pl-9 pr-3 py-2 border-2 border-amber-400 rounded-md outline-none font-mono font-bold bg-amber-50/20"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Postal PIN Code <span className="text-red-500">*</span>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Relief Camp / Shelter Name <span className="text-slate-400">(Optional — auto-detected)</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  maxLength="6"
-                  pattern="[0-9]{6}"
-                  value={formData.pincode}
-                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
-                  placeholder="e.g. 682001 (6 digits)"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-mono font-bold"
+                  value={formData.campName}
+                  onChange={(e) => setFormData({ ...formData, campName: e.target.value, shelterName: e.target.value })}
+                  placeholder="Auto-detected or enter custom name"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md outline-none font-semibold"
                 />
               </div>
             </div>
+
+            {/* Nearby Shelter Finder */}
+            <NearbyCampsFinder
+              pincode={formData.pincode}
+              selectedCampName={formData.campName}
+              onSelectCamp={(camp) => setFormData(prev => ({ ...prev, campName: camp.name, shelterName: camp.name, dropLocation: prev.dropLocation || camp.address || camp.type }))}
+              existingRequests={requests}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -415,16 +434,6 @@ export default function ReceiverDashboard() {
             <form onSubmit={handleUpdateRequest} className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Camp / Shelter Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingRequest.campName || ''}
-                    onChange={(e) => setEditingRequest({ ...editingRequest, campName: e.target.value, shelterName: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none font-semibold"
-                  />
-                </div>
-                <div>
                   <label className="block font-semibold text-slate-700 mb-1">Postal PIN Code</label>
                   <input
                     type="text"
@@ -433,6 +442,15 @@ export default function ReceiverDashboard() {
                     value={editingRequest.pincode || ''}
                     onChange={(e) => setEditingRequest({ ...editingRequest, pincode: e.target.value.replace(/\D/g, '') })}
                     className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-slate-700 mb-1">Camp / Shelter Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={editingRequest.campName || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, campName: e.target.value, shelterName: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none font-semibold"
                   />
                 </div>
               </div>

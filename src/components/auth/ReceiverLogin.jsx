@@ -1,27 +1,64 @@
 import React, { useState } from 'react';
-import { Package, ArrowRight, Phone, MapPin, Users, Building, Radio } from 'lucide-react';
+import { Package, ArrowRight, Phone, MapPin, Users, Building, Radio, Compass, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import NearbyCampsFinder from '../common/NearbyCampsFinder';
+import { lookupPincode } from '../../utils/pincodeService';
 
 export default function ReceiverLogin() {
   const { loginAsReceiver, setActiveView } = useAuth();
-  const { calamityZones } = useData();
+  const { calamityZones, requests } = useData();
 
   const [formData, setFormData] = useState({
+    pincode: '',
+    phone: '',
     name: '',
     campName: '',
     shelterName: '',
-    pincode: '',
     designation: 'Camp Coordinator',
     zoneName: '',
-    phone: '',
     location: '',
     shelterSize: ''
   });
 
+  const handleCampSelect = (camp) => {
+    setFormData(prev => ({
+      ...prev,
+      campName: camp.name,
+      shelterName: camp.name,
+      location: prev.location || camp.address || camp.type || ''
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    loginAsReceiver(formData);
+
+    // Auto-resolve shelter and zone if left blank by user
+    let resolvedCampName = formData.campName.trim();
+    let resolvedZone = formData.zoneName.trim();
+
+    if (!resolvedCampName && formData.pincode) {
+      const match = lookupPincode(formData.pincode, requests);
+      if (match?.primaryCamp?.name) {
+        resolvedCampName = match.primaryCamp.name;
+      } else {
+        resolvedCampName = `Shelter Camp (PIN ${formData.pincode})`;
+      }
+    }
+
+    if (!resolvedZone && formData.pincode) {
+      const match = lookupPincode(formData.pincode, requests);
+      if (match?.locationLabel) {
+        resolvedZone = match.locationLabel;
+      }
+    }
+
+    loginAsReceiver({
+      ...formData,
+      campName: resolvedCampName || 'Relief Camp Shelter',
+      shelterName: resolvedCampName || 'Relief Camp Shelter',
+      zoneName: resolvedZone || 'Disaster Relief Zone'
+    });
   };
 
   return (
@@ -62,93 +99,50 @@ export default function ReceiverLogin() {
             <div>
               <h1 className="text-xl font-bold tracking-tight">Receiver & Camp Sign In</h1>
               <p className="text-xs text-slate-300">
-                For camp managers, local rescue volunteers, and affected community members.
+                Only PIN code, Phone number, and Name are required. The system auto-detects nearby shelters.
               </p>
             </div>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Section 1: Necessary Fields Notice */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 flex items-center justify-between">
+            <span className="font-semibold text-slate-800">
+              Required: <strong className="text-amber-800 font-mono">PIN Code</strong>, <strong className="text-amber-800">Phone</strong> & <strong className="text-amber-800">Name</strong>.
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium">
+              All other fields are optional
+            </span>
+          </div>
+
+          {/* Primary Required Group */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Postal PIN Code */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Camp / Shelter Name <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Postal PIN Code <span className="text-red-600">* Required</span>
               </label>
               <div className="relative">
-                <Building className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <Compass className="w-4 h-4 text-amber-600 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   required
-                  value={formData.campName}
-                  onChange={(e) => setFormData({ ...formData, campName: e.target.value })}
-                  placeholder="e.g. Relief Shelter #1"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                  maxLength="6"
+                  pattern="[0-9]{6}"
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
+                  placeholder="e.g. 682001"
+                  className="w-full pl-9 pr-3 py-2 text-sm font-mono font-bold border-2 border-amber-400 rounded-md focus:ring-2 focus:ring-amber-500 outline-none bg-amber-50/20"
                 />
               </div>
             </div>
 
+            {/* Phone Number */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Affected Calamity Zone / Region <span className="text-red-500">*</span>
-              </label>
-              {calamityZones.length > 0 ? (
-                <select
-                  value={formData.zoneName}
-                  onChange={(e) => setFormData({ ...formData, zoneName: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none bg-white font-medium"
-                >
-                  <option value="">Select zone</option>
-                  {calamityZones.map(z => (
-                    <option key={z.id} value={z.name}>{z.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  required
-                  value={formData.zoneName}
-                  onChange={(e) => setFormData({ ...formData, zoneName: e.target.value })}
-                  placeholder="Enter affected area/region"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Contact Person Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Name"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Your Role / Designation
-              </label>
-              <input
-                type="text"
-                value={formData.designation}
-                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                placeholder="e.g. Camp Coordinator, Volunteer, Resident"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Phone Number <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Phone Number <span className="text-red-600">* Required</span>
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -157,60 +151,132 @@ export default function ReceiverLogin() {
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Phone"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                  placeholder="e.g. 9876543210"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none font-medium"
                 />
               </div>
             </div>
 
+            {/* Contact Person Name */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                People / Families in Shelter
-              </label>
-              <div className="relative">
-                <Users className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={formData.shelterSize}
-                  onChange={(e) => setFormData({ ...formData, shelterSize: e.target.value })}
-                  placeholder="e.g. 150 people"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Camp Location / Address
-              </label>
-              <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Street, Landmark, or Sector"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Postal PIN Code <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Contact Person Name <span className="text-red-600">* Required</span>
               </label>
               <input
                 type="text"
                 required
-                maxLength="6"
-                pattern="[0-9]{6}"
-                value={formData.pincode}
-                onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
-                placeholder="e.g. 682001 (6 digits)"
-                className="w-full px-3 py-2 text-sm font-mono font-semibold border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Full Name"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none font-medium"
               />
+            </div>
+          </div>
+
+          {/* Auto-detected Nearby Shelters Component */}
+          <NearbyCampsFinder
+            pincode={formData.pincode}
+            selectedCampName={formData.campName}
+            onSelectCamp={handleCampSelect}
+            existingRequests={requests}
+          />
+
+          {/* Optional Details Accordion / Fields */}
+          <div className="pt-2 border-t border-slate-200 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700">Optional Shelter Information:</span>
+              <span className="text-[11px] text-slate-400 italic">Leave blank to use auto-detected info</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Relief Camp / Shelter Name <span className="text-slate-400">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <Building className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={formData.campName}
+                    onChange={(e) => setFormData({ ...formData, campName: e.target.value, shelterName: e.target.value })}
+                    placeholder="Auto-detected from PIN or enter custom"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Calamity Zone / Region <span className="text-slate-400">(Optional)</span>
+                </label>
+                {calamityZones.length > 0 ? (
+                  <select
+                    value={formData.zoneName}
+                    onChange={(e) => setFormData({ ...formData, zoneName: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none bg-white font-medium"
+                  >
+                    <option value="">Auto-detect from PIN code</option>
+                    {calamityZones.map(z => (
+                      <option key={z.id} value={z.name}>{z.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.zoneName}
+                    onChange={(e) => setFormData({ ...formData, zoneName: e.target.value })}
+                    placeholder="Auto-detected from PIN or enter custom"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Specific Address / Landmark <span className="text-slate-400">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Street or gate landmark"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  People in Shelter <span className="text-slate-400">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <Users className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={formData.shelterSize}
+                    onChange={(e) => setFormData({ ...formData, shelterSize: e.target.value })}
+                    placeholder="e.g. 150 people"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Role / Title <span className="text-slate-400">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.designation}
+                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  placeholder="e.g. Resident / Volunteer"
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-amber-500 outline-none"
+                />
+              </div>
             </div>
           </div>
 
