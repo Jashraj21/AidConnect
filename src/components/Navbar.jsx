@@ -6,23 +6,15 @@ import {
   Building2,
   LogOut,
   Menu,
-  X,
-  UserCheck,
-  Radio,
-  FileSpreadsheet,
-  Layers,
-  ChevronDown,
-  ShieldCheck,
-  AlertCircle
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 
-export default function Navbar({ onOpenManifest, onOpenOfflineGuide }) {
-  const { currentUser, activeView, setActiveView, logout, quickDemoLogin } = useAuth();
-  const { requests, pledges } = useData();
+export default function Navbar() {
+  const { currentUser, activeView, setActiveView, logout } = useAuth();
+  const { requests } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [demoMenuOpen, setDemoMenuOpen] = useState(false);
 
   const pendingRequestsCount = requests.filter(r => r.status === 'PENDING' || r.status === 'VERIFIED').length;
 
@@ -105,63 +97,6 @@ export default function Navbar({ onOpenManifest, onOpenOfflineGuide }) {
 
           {/* Right Section: Role Login Links & User State */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Quick Role Tester Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setDemoMenuOpen(!demoMenuOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
-                title="Quickly preview portals for different roles"
-              >
-                <Layers className="w-3.5 h-3.5 text-slate-500" />
-                <span>Switch Portal View</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-
-              {demoMenuOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg py-2 z-50 text-xs"
-                  onClick={() => setDemoMenuOpen(false)}
-                >
-                  <div className="px-3 py-1.5 font-bold text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-100">
-                    Fast Demo Role Jump
-                  </div>
-                  <button
-                    onClick={() => quickDemoLogin('DONOR')}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 font-medium"
-                  >
-                    <Heart className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-900">Donor Portal</div>
-                      <div className="text-[11px] text-slate-500">Pledge supplies & track delivery</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => quickDemoLogin('RECEIVER')}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 font-medium"
-                  >
-                    <Package className="w-4 h-4 text-amber-600 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-900">Receiver / Camp Portal</div>
-                      <div className="text-[11px] text-slate-500">Post urgent needs for affected victims</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => quickDemoLogin('ORGANIZATION')}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 font-medium"
-                  >
-                    <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-slate-900">Helping Org (NGO) Desk</div>
-                      <div className="text-[11px] text-slate-500">Triage needs, dispatch & inventory</div>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* If NOT logged in: Show the 3 distinct Login buttons requested by user */}
             {!currentUser ? (
               <div className="flex items-center gap-2">
                 <button
@@ -197,7 +132,6 @@ export default function Navbar({ onOpenManifest, onOpenOfflineGuide }) {
                 </button>
               </div>
             ) : (
-              /* If Logged in: show user pill & portal button & logout */
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -282,14 +216,14 @@ export default function Navbar({ onOpenManifest, onOpenOfflineGuide }) {
                 onClick={() => { setActiveView('donor-login'); setMobileMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 rounded text-sm font-medium bg-emerald-50 text-emerald-900 border border-emerald-200 flex items-center justify-between"
               >
-                <span>Donor Login & Pledges</span>
+                <span>Donor Login</span>
                 <Heart className="w-4 h-4 text-emerald-600" />
               </button>
               <button
                 onClick={() => { setActiveView('receiver-login'); setMobileMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 rounded text-sm font-medium bg-amber-50 text-amber-900 border border-amber-200 flex items-center justify-between"
               >
-                <span>Receiver / Camp Login</span>
+                <span>Receiver Login</span>
                 <Package className="w-4 h-4 text-amber-600" />
               </button>
               <button
@@ -306,4 +240,3 @@ export default function Navbar({ onOpenManifest, onOpenOfflineGuide }) {
     </header>
   );
 }
-

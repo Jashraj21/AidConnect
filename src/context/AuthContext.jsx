@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { DEMO_USERS } from '../data/initialData';
 
 const AuthContext = createContext();
 
@@ -7,6 +6,10 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('donation_auth_user');
+      if (saved && (saved.includes('usr-donor-1') || saved.includes('usr-recv-1') || saved.includes('usr-org-1'))) {
+        localStorage.removeItem('donation_auth_user');
+        return null;
+      }
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
@@ -14,7 +17,7 @@ export function AuthProvider({ children }) {
   });
 
   const [activeView, setActiveView] = useState('home'); 
-  // 'home', 'zones', 'camps', 'transparency', 'donor-login', 'receiver-login', 'org-login', 'donor-portal', 'receiver-portal', 'org-portal'
+  // 'home', 'needs-feed', 'camps', 'transparency', 'donor-login', 'receiver-login', 'org-login', 'donor-portal', 'receiver-portal', 'org-portal', 'emergency-quick'
 
   useEffect(() => {
     try {
@@ -35,9 +38,9 @@ export function AuthProvider({ children }) {
       name: formData.name || 'Anonymous Supporter',
       email: formData.email || '',
       phone: formData.phone || '',
-      city: formData.city || 'Relief Supporter',
+      city: formData.city || '',
       donorType: formData.donorType || 'Individual',
-      pledgesCount: 1
+      pledgesCount: 0
     };
     setCurrentUser(user);
     setActiveView('donor-portal');
@@ -50,11 +53,11 @@ export function AuthProvider({ children }) {
       role: 'RECEIVER',
       name: formData.name || 'Camp Representative',
       campName: formData.campName || 'Disaster Relief Shelter',
-      designation: formData.designation || 'Relief Camp In-charge',
-      zoneId: formData.zoneId || 'zone-1',
+      designation: formData.designation || 'Camp Coordinator',
+      zoneName: formData.zoneName || 'Affected Zone',
       phone: formData.phone || '',
-      location: formData.location || 'Affected District',
-      shelterSize: formData.shelterSize || 'Displaced Families'
+      location: formData.location || '',
+      shelterSize: formData.shelterSize || ''
     };
     setCurrentUser(user);
     setActiveView('receiver-portal');
@@ -65,30 +68,16 @@ export function AuthProvider({ children }) {
     const user = {
       id: `usr-org-${Date.now()}`,
       role: 'ORGANIZATION',
-      orgName: formData.orgName || 'Disaster Relief Alliance',
-      coordinatorName: formData.coordinatorName || 'Relief Operations Desk',
-      regNo: formData.regNo || 'REG-NGO-DISASTER',
-      email: formData.email || 'dispatch@reliefops.org',
+      orgName: formData.orgName || 'Disaster Relief Organization',
+      coordinatorName: formData.coordinatorName || '',
+      regNo: formData.regNo || '',
+      email: formData.email || '',
       phone: formData.phone || '',
-      verified: true,
-      activeZones: formData.activeZones || ['zone-1', 'zone-2', 'zone-3', 'zone-4']
+      verified: true
     };
     setCurrentUser(user);
     setActiveView('org-portal');
     return user;
-  };
-
-  const quickDemoLogin = (role) => {
-    if (role === 'DONOR') {
-      setCurrentUser(DEMO_USERS.donor);
-      setActiveView('donor-portal');
-    } else if (role === 'RECEIVER') {
-      setCurrentUser(DEMO_USERS.receiver);
-      setActiveView('receiver-portal');
-    } else if (role === 'ORGANIZATION') {
-      setCurrentUser(DEMO_USERS.organization);
-      setActiveView('org-portal');
-    }
   };
 
   const logout = () => {
@@ -105,7 +94,6 @@ export function AuthProvider({ children }) {
         loginAsDonor,
         loginAsReceiver,
         loginAsOrganization,
-        quickDemoLogin,
         logout
       }}
     >
@@ -119,4 +107,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
 }
-

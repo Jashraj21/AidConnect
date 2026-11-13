@@ -13,36 +13,52 @@ export function DataProvider({ children }) {
   const [calamityZones, setCalamityZones] = useState(() => {
     try {
       const saved = localStorage.getItem('donation_zones');
-      return saved ? JSON.parse(saved) : CALAMITY_ZONES;
+      if (saved && saved.includes('zone-1')) {
+        localStorage.removeItem('donation_zones');
+        return [];
+      }
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return CALAMITY_ZONES;
+      return [];
     }
   });
 
   const [requests, setRequests] = useState(() => {
     try {
       const saved = localStorage.getItem('donation_requests');
-      return saved ? JSON.parse(saved) : INITIAL_REQUESTS;
+      if (saved && saved.includes('REQ-101')) {
+        localStorage.removeItem('donation_requests');
+        return [];
+      }
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_REQUESTS;
+      return [];
     }
   });
 
   const [pledges, setPledges] = useState(() => {
     try {
       const saved = localStorage.getItem('donation_pledges');
-      return saved ? JSON.parse(saved) : INITIAL_PLEDGES;
+      if (saved && saved.includes('PLG-501')) {
+        localStorage.removeItem('donation_pledges');
+        return [];
+      }
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_PLEDGES;
+      return [];
     }
   });
 
   const [inventory, setInventory] = useState(() => {
     try {
       const saved = localStorage.getItem('donation_inventory');
-      return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
+      if (saved && saved.includes('INV-01')) {
+        localStorage.removeItem('donation_inventory');
+        return [];
+      }
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_INVENTORY;
+      return [];
     }
   });
 
@@ -66,32 +82,51 @@ export function DataProvider({ children }) {
   }, [inventory]);
 
   // Actions
+  const addCalamityZone = (zoneData) => {
+    const newZone = {
+      id: `zone-${Date.now().toString().slice(-4)}`,
+      name: zoneData.name,
+      type: zoneData.type || 'Natural Calamity',
+      severity: zoneData.severity || 'CRITICAL',
+      state: zoneData.state || '',
+      hubCenter: zoneData.hubCenter || 'Regional Staging Hub',
+      campsCount: parseInt(zoneData.campsCount, 10) || 1,
+      affectedPeople: parseInt(zoneData.affectedPeople, 10) || 0,
+      accessibility: zoneData.accessibility || 'Under Assessment',
+      contactHotline: zoneData.contactHotline || '',
+      lastUpdated: 'Just now',
+      summary: zoneData.summary || ''
+    };
+    setCalamityZones(prev => [newZone, ...prev]);
+    return newZone;
+  };
+
   const addRequest = (newReq) => {
     const request = {
       id: `REQ-${Math.floor(100 + Math.random() * 900)}`,
-      zoneId: newReq.zoneId || 'zone-1',
-      campName: newReq.campName || 'Disaster Relief Point',
-      requesterName: newReq.requesterName || 'Camp Resident / Rep',
-      requesterRole: newReq.requesterRole || 'Camp Representative',
+      zoneName: newReq.zoneName || 'Calamity Zone',
+      campName: newReq.campName || 'Relief Shelter',
+      requesterName: newReq.requesterName || 'Camp Representative',
+      requesterRole: newReq.requesterRole || 'Camp In-charge',
       requesterPhone: newReq.requesterPhone || '',
-      peopleCount: parseInt(newReq.peopleCount, 10) || 50,
+      peopleCount: parseInt(newReq.peopleCount, 10) || 0,
       category: newReq.category || 'WATER',
       itemName: newReq.itemName || 'Basic Relief Supplies',
-      quantityNeeded: parseInt(newReq.quantityNeeded, 10) || 10,
+      quantityNeeded: parseInt(newReq.quantityNeeded, 10) || 1,
       quantityFulfilled: 0,
-      urgency: newReq.urgency || 'HIGH', // CRITICAL, HIGH, MODERATE
+      urgency: newReq.urgency || 'HIGH',
       status: 'PENDING',
       verifiedByOrgId: null,
       note: newReq.note || '',
       dateCreated: new Date().toISOString(),
-      dropLocation: newReq.dropLocation || 'Main Camp Distribution Desk'
+      dropLocation: newReq.dropLocation || 'Camp Entrance'
     };
 
     setRequests(prev => [request, ...prev]);
     return request;
   };
 
-  const verifyRequest = (requestId, orgId = 'org-1') => {
+  const verifyRequest = (requestId, orgId = 'org-verified') => {
     setRequests(prev =>
       prev.map(req => {
         if (req.id === requestId) {
@@ -111,22 +146,21 @@ export function DataProvider({ children }) {
     const newPledge = {
       id: `PLG-${Math.floor(500 + Math.random() * 500)}`,
       requestId: pledgeData.requestId,
-      donorName: pledgeData.donorName || 'Generous Supporter',
+      donorName: pledgeData.donorName || 'Donor',
       donorType: pledgeData.donorType || 'Individual',
       donorPhone: pledgeData.donorPhone || '',
       donorEmail: pledgeData.donorEmail || '',
       itemName: pledgeData.itemName,
       quantity: qty,
-      deliveryMethod: pledgeData.deliveryMethod || 'DROPOFF_AT_HUB', // DROPOFF_AT_HUB, DIRECT_COURIER, SPONSOR_KIT
-      dropoffHub: pledgeData.dropoffHub || 'Nearest Regional Disaster Staging Warehouse',
+      deliveryMethod: pledgeData.deliveryMethod || 'DROPOFF_AT_HUB',
+      dropoffHub: pledgeData.dropoffHub || 'Regional Staging Hub',
       pledgeDate: new Date().toISOString(),
       status: 'CONFIRMED',
-      trackingNotes: pledgeData.trackingNotes || 'Pledge confirmed by donor'
+      trackingNotes: pledgeData.trackingNotes || 'Pledged by donor'
     };
 
     setPledges(prev => [newPledge, ...prev]);
 
-    // Update the request fulfillment
     setRequests(prev =>
       prev.map(req => {
         if (req.id === pledgeData.requestId) {
@@ -169,10 +203,10 @@ export function DataProvider({ children }) {
             status: 'DISPATCHED',
             dispatchDetails: {
               dispatchedAt: new Date().toISOString(),
-              vehicleNo: dispatchDetails.vehicleNo || 'EMERGENCY-RELIEF-TRUCK',
-              driverContact: dispatchDetails.driverContact || '+91 98400 11223',
-              assignedVolunteer: dispatchDetails.assignedVolunteer || 'Regional Relief Escort',
-              batchNote: dispatchDetails.batchNote || 'Dispatched from central hub'
+              vehicleNo: dispatchDetails.vehicleNo || 'RELIEF-TRANSPORT',
+              driverContact: dispatchDetails.driverContact || '',
+              assignedVolunteer: dispatchDetails.assignedVolunteer || '',
+              batchNote: dispatchDetails.batchNote || ''
             }
           };
         }
@@ -189,7 +223,7 @@ export function DataProvider({ children }) {
             ...req,
             status: 'DELIVERED',
             deliveredAt: new Date().toISOString(),
-            confirmationNote: confirmationNote || 'Received and distributed to camp families.'
+            confirmationNote: confirmationNote || 'Delivered to camp.'
           };
         }
         return req;
@@ -222,11 +256,11 @@ export function DataProvider({ children }) {
     setInventory(prev => [newItem, ...prev]);
   };
 
-  const resetAllData = () => {
-    setCalamityZones(CALAMITY_ZONES);
-    setRequests(INITIAL_REQUESTS);
-    setPledges(INITIAL_PLEDGES);
-    setInventory(INITIAL_INVENTORY);
+  const clearAllData = () => {
+    setCalamityZones([]);
+    setRequests([]);
+    setPledges([]);
+    setInventory([]);
     localStorage.removeItem('donation_zones');
     localStorage.removeItem('donation_requests');
     localStorage.removeItem('donation_pledges');
@@ -240,9 +274,9 @@ export function DataProvider({ children }) {
         requests,
         pledges,
         inventory,
-        organizations: SAMPLE_ORGANIZATIONS,
         selectedZoneId,
         setSelectedZoneId,
+        addCalamityZone,
         addRequest,
         verifyRequest,
         addPledge,
@@ -251,7 +285,7 @@ export function DataProvider({ children }) {
         markRequestDelivered,
         updateInventoryStock,
         addInventoryItem,
-        resetAllData
+        clearAllData
       }}
     >
       {children}
@@ -264,4 +298,3 @@ export function useData() {
   if (!ctx) throw new Error('useData must be used inside DataProvider');
   return ctx;
 }
-

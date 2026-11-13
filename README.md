@@ -118,3 +118,4 @@ DoNation/
    - **Helping Org (NGO) Desk** (Triage requests, dispatch trucks, print manifest)
 2. Every action (pledges, new needs, inventory adjustments) is automatically stored in `localStorage`, so your updates persist across page reloads.
 3. Click **"Reset Demo Data"** in the footer at any time to restore the platform to its pristine default state.
+

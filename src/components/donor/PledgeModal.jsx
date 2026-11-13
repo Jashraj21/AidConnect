@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { X, Check, Heart, MapPin, Truck, Package, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Check, Heart, MapPin, Truck, Package } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 
 export default function PledgeModal({ request, onClose, onSuccess }) {
   const { currentUser } = useAuth();
-  const { addPledge, calamityZones } = useData();
+  const { addPledge } = useData();
 
-  const zone = calamityZones.find(z => z.id === request.zoneId);
   const remainingNeeded = Math.max(1, request.quantityNeeded - (request.quantityFulfilled || 0));
 
-  const [quantity, setQuantity] = useState(Math.min(remainingNeeded, 25));
+  const [quantity, setQuantity] = useState(Math.min(remainingNeeded, 10));
   const [donorName, setDonorName] = useState(currentUser?.name || '');
   const [donorEmail, setDonorEmail] = useState(currentUser?.email || '');
   const [donorPhone, setDonorPhone] = useState(currentUser?.phone || '');
-  const [deliveryMethod, setDeliveryMethod] = useState('DROPOFF_AT_HUB'); // DROPOFF_AT_HUB, DIRECT_COURIER, SPONSOR_PURCHASE
-  const [trackingNotes, setTrackingNotes] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState('DROPOFF_AT_HUB');
+  const [dropoffHub, setDropoffHub] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedPledge, setCompletedPledge] = useState(null);
 
@@ -25,14 +24,13 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
 
     const pledge = addPledge({
       requestId: request.id,
-      donorName: donorName || 'Kind Supporter',
+      donorName: donorName || 'Donor',
       donorEmail,
       donorPhone,
       itemName: request.itemName,
       quantity: parseInt(quantity, 10),
       deliveryMethod,
-      dropoffHub: zone?.hubCenter || 'Regional Emergency Staging Depot',
-      trackingNotes: trackingNotes || `Pledge for ${request.campName}`
+      dropoffHub: dropoffHub || 'Designated Collection Center'
     });
 
     setIsSubmitting(false);
@@ -51,7 +49,6 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
             </div>
             <div>
               <h3 className="font-bold text-base">Pledge Relief Supply</h3>
-              <p className="text-xs text-slate-300">Direct material aid to relief camps</p>
             </div>
           </div>
           <button
@@ -63,15 +60,14 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
         </div>
 
         {completedPledge ? (
-          /* Confirmation Receipt View */
           <div className="p-6 text-center space-y-4">
             <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
               <Check className="w-8 h-8 stroke-[3]" />
             </div>
             <div>
-              <h4 className="text-lg font-bold text-slate-900">Pledge Confirmed & Registered!</h4>
+              <h4 className="text-lg font-bold text-slate-900">Pledge Confirmed</h4>
               <p className="text-xs text-slate-600 mt-1">
-                Your pledge tracking ID is <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{completedPledge.id}</span>
+                Tracking ID: <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{completedPledge.id}</span>
               </p>
             </div>
 
@@ -84,195 +80,123 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
                 <span className="text-slate-500">Destination Camp:</span>
                 <span className="font-medium text-slate-800">{request.campName}</span>
               </div>
-              <div className="flex justify-between border-b border-slate-200 pb-1.5">
-                <span className="text-slate-500">Staging Warehouse Hub:</span>
-                <span className="font-medium text-slate-800">{completedPledge.dropoffHub}</span>
-              </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Delivery Mode:</span>
                 <span className="font-semibold text-emerald-800">{completedPledge.deliveryMethod}</span>
               </div>
             </div>
 
-            <p className="text-xs text-slate-500">
-              The on-ground relief team and camp coordinator have been notified. Once dispatched or received at the hub, status will update live in the ledger.
-            </p>
-
             <button
               onClick={onClose}
               className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-md transition-colors"
             >
-              Done & Return to Catalog
+              Close
             </button>
           </div>
         ) : (
-          /* Pledge Form */
           <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-            {/* Target request summary card */}
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Request #{request.id}</span>
                 <span className="font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded text-[10px]">
-                  {request.urgency} NEED
+                  {request.urgency}
                 </span>
               </div>
               <div className="font-bold text-sm text-slate-900">{request.itemName}</div>
               <div className="text-slate-600 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span>{request.campName} ({zone?.name || 'Affected Zone'})</span>
+                <span>{request.campName}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200 text-slate-500">
-                <span>Total needed: <strong>{request.quantityNeeded}</strong></span>
-                <span>Already fulfilled: <strong>{request.quantityFulfilled || 0}</strong></span>
+                <span>Needed: <strong>{request.quantityNeeded}</strong></span>
+                <span>Fulfilled: <strong>{request.quantityFulfilled || 0}</strong></span>
                 <span className="text-amber-800 font-bold">Remaining: {remainingNeeded}</span>
               </div>
             </div>
 
-            {/* Quantity selection */}
+            {/* Quantity */}
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                Quantity You Wish to Provide (Max needed: {remainingNeeded}) <span className="text-red-500">*</span>
+                Quantity to Pledge (Remaining: {remainingNeeded}) <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="1"
-                  max={remainingNeeded * 2}
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  required
-                  className="w-32 px-3 py-2 text-sm font-bold border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
-                />
-                <div className="flex gap-1.5">
-                  {[5, 10, 25, 50, remainingNeeded].filter(v => v <= remainingNeeded).map(v => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setQuantity(v)}
-                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded border border-slate-200 text-[11px]"
-                    >
-                      {v === remainingNeeded ? `All (${v})` : v}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <input
+                type="number"
+                min="1"
+                max={remainingNeeded}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                required
+                className="w-32 px-3 py-2 text-sm font-bold border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
+              />
             </div>
 
-            {/* Delivery / Handover Method */}
+            {/* Delivery Method */}
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                How Will You Supply This Item? <span className="text-red-500">*</span>
+                Handover / Delivery Method <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <label className={`p-2.5 rounded border cursor-pointer flex flex-col justify-between ${deliveryMethod === 'DROPOFF_AT_HUB' ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
-                  <input
-                    type="radio"
-                    name="deliveryMethod"
-                    value="DROPOFF_AT_HUB"
-                    checked={deliveryMethod === 'DROPOFF_AT_HUB'}
-                    onChange={() => setDeliveryMethod('DROPOFF_AT_HUB')}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center gap-1.5 font-bold mb-1">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Drop at Hub</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">Deliver to regional staging warehouse</span>
-                </label>
-
-                <label className={`p-2.5 rounded border cursor-pointer flex flex-col justify-between ${deliveryMethod === 'DIRECT_COURIER' ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
-                  <input
-                    type="radio"
-                    name="deliveryMethod"
-                    value="DIRECT_COURIER"
-                    checked={deliveryMethod === 'DIRECT_COURIER'}
-                    onChange={() => setDeliveryMethod('DIRECT_COURIER')}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center gap-1.5 font-bold mb-1">
-                    <Truck className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Courier / Transport</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">Ship via commercial freight/courier</span>
-                </label>
-
-                <label className={`p-2.5 rounded border cursor-pointer flex flex-col justify-between ${deliveryMethod === 'SPONSOR_PURCHASE' ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-semibold' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
-                  <input
-                    type="radio"
-                    name="deliveryMethod"
-                    value="SPONSOR_PURCHASE"
-                    checked={deliveryMethod === 'SPONSOR_PURCHASE'}
-                    onChange={() => setDeliveryMethod('SPONSOR_PURCHASE')}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center gap-1.5 font-bold mb-1">
-                    <Package className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Sponsor Purchase</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal">Vendor procures & dispatches directly</span>
-                </label>
-              </div>
+              <select
+                value={deliveryMethod}
+                onChange={(e) => setDeliveryMethod(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white font-medium outline-none"
+              >
+                <option value="DROPOFF_AT_HUB">Drop off at Staging Hub / Collection Center</option>
+                <option value="DIRECT_COURIER">Direct Courier / Transport Delivery</option>
+                <option value="SPONSOR_PURCHASE">Sponsor Direct Procurement</option>
+              </select>
             </div>
 
-            {/* Drop Hub note */}
-            <div className="bg-slate-100 p-2.5 rounded border border-slate-200 text-slate-600 flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
-              <div>
-                <strong>Assigned Staging Point:</strong> {zone?.hubCenter || 'Meppadi Central Staging Hub'}
-                <div className="text-[10px] text-slate-500 mt-0.5">Handover note: {request.dropLocation}</div>
-              </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Staging Point or Collection Hub
+              </label>
+              <input
+                type="text"
+                value={dropoffHub}
+                onChange={(e) => setDropoffHub(e.target.value)}
+                placeholder="e.g. Nearest Community Center / Hub"
+                className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
+              />
             </div>
 
             {/* Donor info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Your Name / Group</label>
+                <label className="block font-semibold text-slate-700 mb-1">Your Name</label>
                 <input
                   type="text"
                   required
                   value={donorName}
                   onChange={(e) => setDonorName(e.target.value)}
-                  placeholder="e.g. Anandita Menon"
+                  placeholder="Name"
                   className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Email (For Confirmation Receipt)</label>
+                <label className="block font-semibold text-slate-700 mb-1">Email</label>
                 <input
                   type="email"
                   required
                   value={donorEmail}
                   onChange={(e) => setDonorEmail(e.target.value)}
-                  placeholder="name@email.com"
+                  placeholder="Email"
                   className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Phone / WhatsApp</label>
+              <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
               <input
                 type="tel"
                 value={donorPhone}
                 onChange={(e) => setDonorPhone(e.target.value)}
-                placeholder="+91 98000 00000"
+                placeholder="Phone"
                 className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
               />
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Optional Notes / Dispatch Details</label>
-              <input
-                type="text"
-                value={trackingNotes}
-                onChange={(e) => setTrackingNotes(e.target.value)}
-                placeholder="e.g. Shipping 2 cartons via BlueDart AWB #998822 on Nov 14"
-                className="w-full px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 outline-none"
-              />
-            </div>
-
-            {/* Submit buttons */}
             <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200">
               <button
                 type="button"
@@ -287,7 +211,7 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-sm transition-colors flex items-center gap-1.5"
               >
                 <Heart className="w-4 h-4 fill-current" />
-                <span>Confirm Pledge ({quantity} items)</span>
+                <span>Confirm Pledge</span>
               </button>
             </div>
           </form>
@@ -296,4 +220,3 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
     </div>
   );
 }
-

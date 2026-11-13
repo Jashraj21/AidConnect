@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { Heart, ShieldCheck, ArrowRight, CheckCircle2, User, Mail, Phone, MapPin, Sparkles } from 'lucide-react';
+import { Heart, ShieldCheck, ArrowRight, User, Mail, Phone, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function DonorLogin() {
-  const { loginAsDonor, quickDemoLogin, setActiveView } = useAuth();
+  const { loginAsDonor, setActiveView } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     city: '',
-    donorType: 'Individual Supporter',
-    subscribeAlerts: true
+    donorType: 'Individual'
   });
 
   const handleSubmit = (e) => {
@@ -20,7 +19,6 @@ export default function DonorLogin() {
 
   return (
     <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6">
-      {/* Breadcrumb / Notice */}
       <div className="mb-6 flex items-center justify-between text-xs text-slate-500">
         <button
           onClick={() => setActiveView('home')}
@@ -41,38 +39,20 @@ export default function DonorLogin() {
               <Heart className="w-5 h-5 fill-current" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Donor & Supporter Sign In</h1>
+              <h1 className="text-xl font-bold tracking-tight">Donor Sign In</h1>
               <p className="text-xs text-slate-300">
-                Pledge basic survival kits, ship essential goods, and track last-mile delivery to relief camps.
+                Pledge basic survival items and track delivery to relief camps.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Demo Fast-Track Bar */}
-        <div className="bg-emerald-50/70 border-b border-emerald-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-emerald-900">
-            <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
-            <span>
-              <strong>Evaluating or Testing?</strong> Log in instantly with our verified donor profile.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => quickDemoLogin('DONOR')}
-            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded text-xs transition-colors shrink-0 flex items-center gap-1.5 shadow-sm"
-          >
-            <span>One-Click Test Login</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Full Name / Organization Name <span className="text-red-500">*</span>
+                Full Name / Organization <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -81,8 +61,8 @@ export default function DonorLogin() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Maya Sharma or Apex Supplies CSR"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  placeholder="Enter name"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
             </div>
@@ -94,13 +74,12 @@ export default function DonorLogin() {
               <select
                 value={formData.donorType}
                 onChange={(e) => setFormData({ ...formData, donorType: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none bg-white"
               >
-                <option value="Individual Supporter">Individual Citizen</option>
+                <option value="Individual">Individual</option>
                 <option value="Family / Community Group">Family / Community Group</option>
-                <option value="Corporate CSR">Corporate CSR Division</option>
-                <option value="Diaspora / Overseas Group">Diaspora / Overseas Aid Group</option>
-                <option value="Merchant / Wholesaler">Merchant / Supply Vendor</option>
+                <option value="Corporate CSR">Corporate CSR</option>
+                <option value="Organization">Organization</option>
               </select>
             </div>
           </div>
@@ -108,7 +87,7 @@ export default function DonorLogin() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Email Address (For Dispatch Slip & Tracking) <span className="text-red-500">*</span>
+                Email Address <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -118,14 +97,14 @@ export default function DonorLogin() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="name@example.com"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Mobile / WhatsApp (For Logistics Alerts)
+                Mobile / Phone
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -133,8 +112,8 @@ export default function DonorLogin() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+91 98000 00000"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  placeholder="Phone number"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
             </div>
@@ -142,7 +121,7 @@ export default function DonorLogin() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Your City / Location
+              City / Location
             </label>
             <div className="relative">
               <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -150,18 +129,9 @@ export default function DonorLogin() {
                 type="text"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="e.g. Kochi, Bengaluru, Delhi, Mumbai"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                placeholder="City"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
               />
-            </div>
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
-            <div className="flex items-start gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-600">
-                <strong>Zero Cash Overhead:</strong> DoNation focuses on direct material needs (drinking water, baby formula, tarpaulins, ORS). You can either ship items to a designated relief hub or coordinate with our verified on-ground logistics partners.
-              </p>
             </div>
           </div>
 
@@ -169,20 +139,19 @@ export default function DonorLogin() {
             type="submit"
             className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-md transition-colors shadow-sm flex items-center justify-center gap-2"
           >
-            <span>Enter Donor Portal & View Shortages</span>
+            <span>Enter Donor Portal</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* Footer Role Switcher */}
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <span>Looking for another portal?</span>
+          <span>Other portals:</span>
           <div className="flex items-center gap-3 font-medium">
             <button
               onClick={() => setActiveView('receiver-login')}
               className="text-amber-800 hover:underline"
             >
-              Receiver / Relief Camp Login →
+              Receiver Login →
             </button>
             <span>•</span>
             <button
@@ -197,4 +166,3 @@ export default function DonorLogin() {
     </div>
   );
 }
-
