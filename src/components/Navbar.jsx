@@ -56,6 +56,17 @@ export default function Navbar() {
               </button>
 
               <button
+                onClick={() => setActiveView('supply-hub')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  activeView === 'supply-hub'
+                    ? 'text-red-700 bg-red-50 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Supply Exchange
+              </button>
+
+              <button
                 onClick={() => setActiveView('needs-feed')}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
                   activeView === 'needs-feed'
@@ -188,6 +199,12 @@ export default function Navbar() {
               className="text-left px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded"
             >
               Disaster Overview
+            </button>
+            <button
+              onClick={() => { setActiveView('supply-hub'); setMobileMenuOpen(false); }}
+              className="text-left px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded"
+            >
+              Supply Exchange
             </button>
             <button
               onClick={() => { setActiveView('needs-feed'); setMobileMenuOpen(false); }}

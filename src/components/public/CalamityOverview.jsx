@@ -44,30 +44,35 @@ export default function CalamityOverview() {
             {/* Role Gateways */}
             <div className="pt-4 flex flex-wrap items-center gap-3">
               <button
+                onClick={() => setActiveView('supply-hub')}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
+              >
+                <span>Supply Donation & Needs Exchange</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+
+              <button
                 onClick={() => setActiveView('donor-login')}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
               >
                 <Heart className="w-4 h-4 fill-current" />
                 <span>Donor Login</span>
-                <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
               <button
                 onClick={() => setActiveView('receiver-login')}
-                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
               >
                 <Package className="w-4 h-4" />
                 <span>Receiver Login</span>
-                <ArrowRight className="w-3.5 h-3.5" />
               </button>
 
               <button
                 onClick={() => setActiveView('org-login')}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-md transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-md transition-colors flex items-center gap-2"
               >
                 <Building2 className="w-4 h-4 text-blue-400" />
-                <span>Helping Organization Login</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Helping Org Login</span>
               </button>
             </div>
           </div>

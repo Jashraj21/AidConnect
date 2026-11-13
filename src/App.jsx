@@ -19,6 +19,7 @@ import OrgDashboard from './components/organization/OrgDashboard';
 import EmergencyQuickRequest from './components/receiver/EmergencyQuickRequest';
 
 import ManifestPrintView from './components/organization/ManifestPrintView';
+import UnifiedHub from './components/UnifiedHub';
 import { Heart, LifeBuoy, Package, Building2 } from 'lucide-react';
 
 export default function App() {
@@ -29,6 +30,8 @@ export default function App() {
     switch (activeView) {
       case 'home':
         return <CalamityOverview />;
+      case 'supply-hub':
+        return <UnifiedHub />;
       case 'needs-feed':
         return <PublicReliefFeed />;
       case 'camps':
