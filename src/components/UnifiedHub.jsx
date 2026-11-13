@@ -11,12 +11,13 @@ import {
   Tent,
   ShieldAlert,
   Plus,
-  CheckCircle2,
-  Clock,
+  Minus,
+  Check,
+  X,
   Truck,
-  ArrowRight,
-  Filter,
-  Check
+  MapPin,
+  ShoppingBag,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -24,9 +25,9 @@ import { CATEGORIES, STANDARD_ITEMS } from '../data/initialData';
 
 export default function UnifiedHub() {
   const { currentUser, setActiveView } = useAuth();
-  const { requests, pledges, addRequest, addPledge, verifyRequest, dispatchRequestShipment } = useData();
+  const { requests, pledges, addRequest, addPledge } = useData();
 
-  // Active perspective tab: 'all' | 'donor' | 'receiver' | 'organization'
+  // Mode: 'donor' | 'receiver' | 'organization'
   const [activeRoleTab, setActiveRoleTab] = useState(
     currentUser?.role === 'DONOR'
       ? 'donor'
@@ -34,112 +35,152 @@ export default function UnifiedHub() {
       ? 'receiver'
       : currentUser?.role === 'ORGANIZATION'
       ? 'organization'
-      : 'all'
+      : 'donor'
   );
 
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
-  // Modal states for direct action
-  const [actionItem, setActionItem] = useState(null); // The standard item selected
-  const [actionType, setActionType] = useState(null); // 'DONATE' | 'REQUEST'
-  const [actionSuccess, setActionSuccess] = useState(false);
+  // Graphical item selection state: { [itemId]: count }
+  const [itemCounts, setItemCounts] = useState({});
 
-  // Form states
-  const [formQuantity, setFormQuantity] = useState(10);
-  const [formName, setFormName] = useState(currentUser?.name || '');
-  const [formContact, setFormContact] = useState(currentUser?.phone || currentUser?.email || '');
-  const [formCamp, setFormCamp] = useState(currentUser?.campName || '');
-  const [formLocation, setFormLocation] = useState(currentUser?.location || '');
-  const [formUrgency, setFormUrgency] = useState('HIGH');
-  const [formNotes, setFormNotes] = useState('');
+  // Batch donation checkout modal
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchSuccess, setBatchSuccess] = useState(false);
+
+  // Form states for checkout
+  const [donorName, setDonorName] = useState(currentUser?.name || '');
+  const [donorContact, setDonorContact] = useState(currentUser?.phone || currentUser?.email || '');
+  const [dropoffHub, setDropoffHub] = useState('');
+  const [donorNotes, setDonorNotes] = useState('');
+
+  // Single item request modal (for receiver)
+  const [requestTargetItem, setRequestTargetItem] = useState(null);
+  const [requestQuantity, setRequestQuantity] = useState(20);
+  const [requestCampName, setRequestCampName] = useState(currentUser?.campName || '');
+  const [requestContact, setRequestContact] = useState(currentUser?.phone || '');
+  const [requestUrgency, setRequestUrgency] = useState('HIGH');
+  const [requestSuccess, setRequestSuccess] = useState(false);
+
+  // Increment item count
+  const handleIncrement = (itemId) => {
+    setItemCounts(prev => ({
+      ...prev,
+      [itemId]: (prev[itemId] || 0) + 1
+    }));
+  };
+
+  // Decrement item count
+  const handleDecrement = (itemId) => {
+    setItemCounts(prev => {
+      const current = prev[itemId] || 0;
+      if (current <= 1) {
+        const updated = { ...prev };
+        delete updated[itemId];
+        return updated;
+      }
+      return {
+        ...prev,
+        [itemId]: current - 1
+      };
+    });
+  };
+
+  // Direct manual quantity set
+  const handleSetQuantity = (itemId, val) => {
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    setItemCounts(prev => {
+      if (num === 0) {
+        const updated = { ...prev };
+        delete updated[itemId];
+        return updated;
+      }
+      return { ...prev, [itemId]: num };
+    });
+  };
 
   // Category Icon helper
   const getItemIcon = (category) => {
     switch (category) {
       case 'CLOTHES':
-        return <Shirt className="w-5 h-5 text-indigo-600" />;
+        return <Shirt className="w-6 h-6 text-indigo-600" />;
       case 'HYGIENE':
-        return <ShieldAlert className="w-5 h-5 text-teal-600" />;
+        return <ShieldAlert className="w-6 h-6 text-teal-600" />;
       case 'WATER':
-        return <Droplets className="w-5 h-5 text-blue-600" />;
+        return <Droplets className="w-6 h-6 text-blue-600" />;
       case 'FOOD':
-        return <Utensils className="w-5 h-5 text-amber-600" />;
+        return <Utensils className="w-6 h-6 text-amber-600" />;
       case 'MEDICINE':
-        return <HeartPulse className="w-5 h-5 text-rose-600" />;
+        return <HeartPulse className="w-6 h-6 text-rose-600" />;
       case 'BOOKS':
-        return <BookOpen className="w-5 h-5 text-violet-600" />;
+        return <BookOpen className="w-6 h-6 text-violet-600" />;
       case 'SHELTER_ESSENTIALS':
-        return <Tent className="w-5 h-5 text-emerald-600" />;
+        return <Tent className="w-6 h-6 text-emerald-600" />;
       default:
-        return <Package className="w-5 h-5 text-slate-600" />;
+        return <Package className="w-6 h-6 text-slate-600" />;
     }
   };
 
-  // Open modal
-  const handleOpenAction = (item, type) => {
-    setActionItem(item);
-    setActionType(type);
-    setActionSuccess(false);
-    setFormQuantity(type === 'DONATE' ? 10 : 25);
-    setFormNotes('');
-  };
+  // Selected items list
+  const selectedItemsList = Object.entries(itemCounts)
+    .map(([id, qty]) => {
+      const itemDef = STANDARD_ITEMS.find(it => it.id === id);
+      return itemDef ? { ...itemDef, quantity: qty } : null;
+    })
+    .filter(Boolean);
 
-  // Submit Donation Pledge
-  const handleDonateSubmit = (e) => {
+  const totalSelectedUnits = selectedItemsList.reduce((sum, it) => sum + it.quantity, 0);
+
+  // Submit batch donation
+  const handleBatchDonationSubmit = (e) => {
     e.preventDefault();
-    if (!actionItem) return;
+    if (selectedItemsList.length === 0) return;
 
-    // Find if there is an existing open request for this item to link to
-    const matchingReq = requests.find(r =>
-      r.itemName.toLowerCase().includes(actionItem.name.toLowerCase()) &&
-      (r.quantityFulfilled || 0) < r.quantityNeeded
-    );
-
-    addPledge({
-      requestId: matchingReq ? matchingReq.id : `GEN-${actionItem.id}`,
-      donorName: formName || 'Kind Supporter',
-      donorEmail: formContact.includes('@') ? formContact : '',
-      donorPhone: !formContact.includes('@') ? formContact : '',
-      itemName: actionItem.name,
-      quantity: parseInt(formQuantity, 10) || 1,
-      deliveryMethod: 'DROPOFF_AT_HUB',
-      dropoffHub: formLocation || 'Community Relief Staging Center',
-      trackingNotes: formNotes || `Pledged for disaster relief`
+    selectedItemsList.forEach(sel => {
+      addPledge({
+        requestId: `GEN-${sel.id}`,
+        donorName: donorName || 'Kind Donor',
+        donorEmail: donorContact.includes('@') ? donorContact : '',
+        donorPhone: !donorContact.includes('@') ? donorContact : '',
+        itemName: sel.name,
+        quantity: sel.quantity,
+        deliveryMethod: 'DROPOFF_AT_HUB',
+        dropoffHub: dropoffHub || 'Regional Relief Hub',
+        trackingNotes: donorNotes || `Donated via Graphical Hub`
+      });
     });
 
-    setActionSuccess(true);
+    setBatchSuccess(true);
     setTimeout(() => {
-      setActionItem(null);
-      setActionType(null);
-      setActionSuccess(false);
-    }, 1800);
+      setItemCounts({});
+      setShowBatchModal(false);
+      setBatchSuccess(false);
+    }, 2000);
   };
 
-  // Submit Relief Need Request
-  const handleRequestSubmit = (e) => {
+  // Submit Receiver single request
+  const handleSingleRequestSubmit = (e) => {
     e.preventDefault();
-    if (!actionItem) return;
+    if (!requestTargetItem) return;
 
     addRequest({
-      zoneName: formLocation || 'Affected Zone',
-      campName: formCamp || 'Relief Shelter',
-      requesterName: formName || 'Camp Representative',
+      zoneName: 'Affected Calamity Zone',
+      campName: requestCampName || 'Relief Camp',
+      requesterName: currentUser?.name || 'Camp Representative',
       requesterRole: 'Camp Lead',
-      requesterPhone: formContact,
+      requesterPhone: requestContact,
       peopleCount: 50,
-      category: actionItem.category,
-      itemName: actionItem.name,
-      quantityNeeded: parseInt(formQuantity, 10) || 1,
-      urgency: formUrgency,
-      note: formNotes,
-      dropLocation: formLocation || 'Camp Main Gate'
+      category: requestTargetItem.category,
+      itemName: requestTargetItem.name,
+      quantityNeeded: parseInt(requestQuantity, 10) || 1,
+      urgency: requestUrgency,
+      note: `Requested via unified hub`,
+      dropLocation: 'Camp Entrance'
     });
 
-    setActionSuccess(true);
+    setRequestSuccess(true);
     setTimeout(() => {
-      setActionItem(null);
-      setActionType(null);
-      setActionSuccess(false);
+      setRequestTargetItem(null);
+      setRequestSuccess(false);
     }, 1800);
   };
 
@@ -150,22 +191,22 @@ export default function UnifiedHub() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-      {/* Page Title & Connection Explanation */}
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8 pb-32">
+      {/* Header */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 shadow-sm">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-100 text-slate-800 text-xs font-bold uppercase tracking-wider mb-2">
-            <span>Unified Community Relief Hub</span>
+            <span>Direct Graphical Supply Hub</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Connect Donors, Receivers & Helping Organizations
+            Supply Donation & Needs Exchange
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-            A single direct channel for clothes (shirts, pants, t-shirts, shorts), sanitary pads, water bottles, food items (fruits and packet foods), medicines, books, and essential survival goods.
+            Use the <strong>+</strong> and <strong>−</strong> controls beside each item to add or remove quantities you want to donate or request.
           </p>
         </div>
 
-        {/* 3 User Type Switcher */}
+        {/* 3 User Perspective Switcher */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-slate-200">
           <button
             onClick={() => setActiveRoleTab('donor')}
@@ -177,10 +218,10 @@ export default function UnifiedHub() {
           >
             <div className="flex items-center gap-2 font-bold text-sm">
               <Heart className="w-4 h-4 text-emerald-600 fill-current" />
-              <span>1. For Donors</span>
+              <span>Donor Mode</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Pledge clean clothes, water, food packets, or medicines directly.
+              Add quantities with <strong>+</strong> to pledge clothes, water, food & items.
             </p>
           </button>
 
@@ -194,10 +235,10 @@ export default function UnifiedHub() {
           >
             <div className="flex items-center gap-2 font-bold text-sm">
               <Package className="w-4 h-4 text-amber-600" />
-              <span>2. For Receivers (Camps)</span>
+              <span>Receiver / Camp Mode</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Request exact quantities needed for families in your shelter.
+              Submit requirements needed for families sheltering at your camp.
             </p>
           </button>
 
@@ -211,16 +252,16 @@ export default function UnifiedHub() {
           >
             <div className="flex items-center gap-2 font-bold text-sm">
               <Building2 className="w-4 h-4 text-blue-600" />
-              <span>3. For Helping Orgs (NGOs)</span>
+              <span>Helping Organization Mode</span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Verify distress calls, manage warehouse stock & dispatch convoys.
+              View matching supply vs. demand, dispatch convoys & manage inventory.
             </p>
           </button>
         </div>
       </div>
 
-      {/* Category Pills Filter */}
+      {/* Category Filter Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
         <button
           onClick={() => setSelectedCategory('ALL')}
@@ -230,7 +271,7 @@ export default function UnifiedHub() {
               : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
           }`}
         >
-          All Essential Items
+          All Items ({STANDARD_ITEMS.length})
         </button>
 
         {CATEGORIES.map(cat => (
@@ -248,56 +289,109 @@ export default function UnifiedHub() {
         ))}
       </div>
 
-      {/* ITEMS CATALOG & DIRECT INTERACTION GRID */}
+      {/* GRAPHICAL ITEMS GRID WITH PLUS/MINUS SYMBOLS NEAR ICON */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredItems.map(item => {
-          // Calculate live demand & supply for this specific item
-          const relatedRequests = requests.filter(r =>
-            r.itemName.toLowerCase().includes(item.name.toLowerCase()) ||
-            r.category === item.category
-          );
-          const totalRequested = relatedRequests.reduce((sum, r) => sum + r.quantityNeeded, 0);
+          const count = itemCounts[item.id] || 0;
+          const isSelected = count > 0;
 
-          const relatedPledges = pledges.filter(p =>
+          // Live counts from recorded data
+          const itemReqs = requests.filter(r =>
+            r.itemName.toLowerCase().includes(item.name.toLowerCase()) || r.category === item.category
+          );
+          const totalRequested = itemReqs.reduce((sum, r) => sum + r.quantityNeeded, 0);
+
+          const itemPledges = pledges.filter(p =>
             p.itemName.toLowerCase().includes(item.name.toLowerCase())
           );
-          const totalPledged = relatedPledges.reduce((sum, p) => sum + p.quantity, 0);
+          const totalPledged = itemPledges.reduce((sum, p) => sum + p.quantity, 0);
 
           return (
             <div
               key={item.id}
-              className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
+              className={`bg-white rounded-xl border p-5 shadow-sm transition-all flex flex-col justify-between ${
+                isSelected
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
             >
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
+              <div className="space-y-4">
+                {/* Top Row: Icon + Graphical Stepper (+ / -) */}
+                <div className="flex items-center justify-between gap-3">
+                  {/* Left: Graphic Icon & Details */}
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                        isSelected ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-100 border-slate-200'
+                      }`}
+                    >
                       {getItemIcon(item.category)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-base">{item.name}</h3>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold">
+                      <h3 className="font-bold text-slate-900 text-base leading-tight">{item.name}</h3>
+                      <span className="text-[11px] text-slate-500 font-medium">
                         Unit: {item.unit}
                       </span>
                     </div>
                   </div>
+
+                  {/* Right: Graphic Stepper (+ / -) */}
+                  {activeRoleTab === 'donor' && (
+                    <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-300 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleDecrement(item.id)}
+                        disabled={count === 0}
+                        className="w-8 h-8 rounded bg-white hover:bg-slate-200 text-slate-800 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                        title="Remove one (-)"
+                      >
+                        <Minus className="w-4 h-4 stroke-[3]" />
+                      </button>
+
+                      <input
+                        type="number"
+                        min="0"
+                        value={count}
+                        onChange={(e) => handleSetQuantity(item.id, e.target.value)}
+                        className="w-10 text-center font-bold text-sm text-slate-900 font-mono bg-transparent outline-none"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => handleIncrement(item.id)}
+                        className="w-8 h-8 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                        title="Add one (+)"
+                      >
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                      </button>
+                    </div>
+                  )}
+
+                  {activeRoleTab === 'receiver' && (
+                    <button
+                      onClick={() => setRequestTargetItem(item)}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Request</span>
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed">
                   {item.description}
                 </p>
 
-                {/* Demand & Pledges Counter */}
+                {/* Live Demand vs Pledges Metrics */}
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold">Requested:</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">Total Requested:</span>
                     <div className="font-bold text-red-700 text-sm mt-0.5">
                       {totalRequested} {item.unit}
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold">Pledged:</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">Total Pledged:</span>
                     <div className="font-bold text-emerald-700 text-sm mt-0.5">
                       {totalPledged} {item.unit}
                     </div>
@@ -305,61 +399,45 @@ export default function UnifiedHub() {
                 </div>
               </div>
 
-              {/* Action Buttons Connecting The 3 Users */}
-              <div className="mt-5 pt-3 border-t border-slate-100 space-y-2">
-                {activeRoleTab === 'all' && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleOpenAction(item, 'DONATE')}
-                      className="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Heart className="w-3.5 h-3.5 fill-current" />
-                      <span>Donate</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleOpenAction(item, 'REQUEST')}
-                      className="w-full py-1.5 px-2 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Package className="w-3.5 h-3.5" />
-                      <span>Request</span>
-                    </button>
-                  </div>
-                )}
-
+              {/* Bottom Card Footer */}
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                 {activeRoleTab === 'donor' && (
-                  <button
-                    onClick={() => handleOpenAction(item, 'DONATE')}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                  >
-                    <Heart className="w-4 h-4 fill-current" />
-                    <span>Pledge / Donate {item.name}</span>
-                  </button>
+                  <>
+                    <span className="text-slate-500 font-medium">
+                      {count > 0 ? (
+                        <span className="text-emerald-700 font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>{count} {item.unit} selected</span>
+                        </span>
+                      ) : (
+                        <span>Use + to add to donation</span>
+                      )}
+                    </span>
+
+                    {count > 0 && (
+                      <button
+                        onClick={() => setShowBatchModal(true)}
+                        className="text-emerald-700 hover:underline font-bold text-xs"
+                      >
+                        Donate now →
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {activeRoleTab === 'receiver' && (
-                  <button
-                    onClick={() => handleOpenAction(item, 'REQUEST')}
-                    className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                  >
-                    <Package className="w-4 h-4" />
-                    <span>Request {item.name} for Shelter</span>
-                  </button>
+                  <span className="text-slate-500">
+                    Click 'Request' to post shelter need
+                  </span>
                 )}
 
                 {activeRoleTab === 'organization' && (
-                  <div className="space-y-1">
-                    <div className="text-[11px] text-slate-500 text-center font-medium">
-                      {relatedRequests.length} active camp requests for this item
-                    </div>
-                    <button
-                      onClick={() => setActiveView('org-portal')}
-                      className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
-                    >
-                      <Building2 className="w-3.5 h-3.5 text-blue-300" />
-                      <span>Manage / Dispatch from Org Desk</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setActiveView('org-portal')}
+                    className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded transition-colors text-center"
+                  >
+                    View & Dispatch in Org Desk
+                  </button>
                 )}
               </div>
             </div>
@@ -367,69 +445,109 @@ export default function UnifiedHub() {
         })}
       </div>
 
-      {/* POPUP ACTION MODAL (DONATE OR REQUEST) */}
-      {actionItem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full border border-slate-200 shadow-xl overflow-hidden">
-            <div className={`p-4 text-white flex items-center justify-between ${actionType === 'DONATE' ? 'bg-emerald-700' : 'bg-amber-700'}`}>
+      {/* STICKY BOTTOM DONATION SUMMARY TRAY FOR DONORS */}
+      {activeRoleTab === 'donor' && totalSelectedUnits > 0 && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t-2 border-emerald-600 shadow-2xl p-4 sm:p-5">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 text-sm">
+                    {totalSelectedUnits} items selected for donation
+                  </span>
+                  <span className="text-[11px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200">
+                    {selectedItemsList.length} categories
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 truncate max-w-xl mt-0.5">
+                  {selectedItemsList.map(it => `${it.quantity}x ${it.name}`).join(', ')}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setItemCounts({})}
+                className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded"
+              >
+                Clear
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowBatchModal(true)}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
+              >
+                <Heart className="w-4 h-4 fill-current" />
+                <span>Confirm & Pledge ({totalSelectedUnits} items)</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BATCH DONATION CONFIRMATION MODAL */}
+      {showBatchModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden my-8">
+            <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {actionType === 'DONATE' ? <Heart className="w-5 h-5 fill-current" /> : <Package className="w-5 h-5" />}
-                <h3 className="font-bold text-sm">
-                  {actionType === 'DONATE' ? `Donate: ${actionItem.name}` : `Request: ${actionItem.name}`}
-                </h3>
+                <Heart className="w-5 h-5 text-emerald-400 fill-current" />
+                <h3 className="font-bold text-sm">Confirm Relief Supply Donation</h3>
               </div>
               <button
-                onClick={() => setActionItem(null)}
-                className="text-white/80 hover:text-white text-sm font-bold"
+                onClick={() => setShowBatchModal(false)}
+                className="text-slate-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
-            {actionSuccess ? (
-              <div className="p-8 text-center space-y-2">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto ${actionType === 'DONATE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                  <Check className="w-6 h-6 stroke-[3]" />
+            {batchSuccess ? (
+              <div className="p-8 text-center space-y-3">
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 stroke-[3]" />
                 </div>
-                <h4 className="font-bold text-slate-900 text-base">
-                  {actionType === 'DONATE' ? 'Pledge Registered!' : 'Need Requisition Submitted!'}
-                </h4>
-                <p className="text-xs text-slate-500">
-                  {actionType === 'DONATE'
-                    ? `Thank you for pledging ${formQuantity} ${actionItem.unit} of ${actionItem.name}.`
-                    : `Your camp request for ${formQuantity} ${actionItem.unit} of ${actionItem.name} has been broadcasted.`}
+                <h4 className="font-bold text-slate-900 text-base">Pledges Confirmed & Logged!</h4>
+                <p className="text-xs text-slate-600">
+                  Your selected items have been added to the relief ledger for on-ground distribution.
                 </p>
               </div>
             ) : (
-              <form
-                onSubmit={actionType === 'DONATE' ? handleDonateSubmit : handleRequestSubmit}
-                className="p-6 space-y-4 text-xs"
-              >
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Quantity ({actionItem.unit}) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={formQuantity}
-                    onChange={(e) => setFormQuantity(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded font-bold outline-none text-sm"
-                  />
+              <form onSubmit={handleBatchDonationSubmit} className="p-6 space-y-4 text-xs">
+                {/* List of selected items */}
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+                  <div className="font-bold text-slate-800 text-xs">Selected Items Package:</div>
+                  <div className="divide-y divide-slate-200 max-h-48 overflow-y-auto pr-1">
+                    {selectedItemsList.map(it => (
+                      <div key={it.id} className="py-1.5 flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-800">{it.name}</span>
+                        <span className="font-mono font-bold text-emerald-700">{it.quantity} {it.unit}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900">
+                    <span>Total Items:</span>
+                    <span>{totalSelectedUnits} units</span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      {actionType === 'DONATE' ? 'Donor Name' : 'Contact Person'} <span className="text-red-500">*</span>
+                      Donor Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      placeholder="Name"
+                      value={donorName}
+                      onChange={(e) => setDonorName(e.target.value)}
+                      placeholder="Your name"
                       className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
                     />
                   </div>
@@ -441,52 +559,36 @@ export default function UnifiedHub() {
                     <input
                       type="text"
                       required
-                      value={formContact}
-                      onChange={(e) => setFormContact(e.target.value)}
-                      placeholder="Contact"
+                      value={donorContact}
+                      onChange={(e) => setDonorContact(e.target.value)}
+                      placeholder="Contact details"
                       className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
                     />
                   </div>
                 </div>
 
-                {actionType === 'REQUEST' && (
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Camp / Shelter Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formCamp}
-                      onChange={(e) => setFormCamp(e.target.value)}
-                      placeholder="e.g. Relief Shelter #3"
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
-                    />
-                  </div>
-                )}
-
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    {actionType === 'DONATE' ? 'Collection Hub / Your City' : 'Location / Drop Gate'}
+                    Drop-off Staging Hub or Your City
                   </label>
                   <input
                     type="text"
-                    value={formLocation}
-                    onChange={(e) => setFormLocation(e.target.value)}
-                    placeholder="Location details"
+                    value={dropoffHub}
+                    onChange={(e) => setDropoffHub(e.target.value)}
+                    placeholder="e.g. Nearest Collection Center / Courier"
                     className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Notes
+                    Logistics / Packaging Notes
                   </label>
                   <input
                     type="text"
-                    value={formNotes}
-                    onChange={(e) => setFormNotes(e.target.value)}
-                    placeholder="Specific sizes, food types, or details"
+                    value={donorNotes}
+                    onChange={(e) => setDonorNotes(e.target.value)}
+                    placeholder="e.g. Cleanly packed in 2 boxes"
                     className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
                   />
                 </div>
@@ -494,20 +596,113 @@ export default function UnifiedHub() {
                 <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                   <button
                     type="button"
-                    onClick={() => setActionItem(null)}
-                    className="px-4 py-2 border border-slate-300 rounded text-slate-700 font-medium hover:bg-slate-50"
+                    onClick={() => setShowBatchModal(false)}
+                    className="px-4 py-2 border border-slate-300 rounded text-slate-700 font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className={`px-5 py-2 text-white font-bold rounded shadow-sm ${
-                      actionType === 'DONATE'
-                        ? 'bg-emerald-600 hover:bg-emerald-700'
-                        : 'bg-amber-600 hover:bg-amber-700'
-                    }`}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-sm"
                   >
-                    {actionType === 'DONATE' ? 'Confirm Donation Pledge' : 'Submit Camp Request'}
+                    Confirm Pledge ({totalSelectedUnits} items)
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SINGLE ITEM REQUEST MODAL FOR RECEIVER */}
+      {requestTargetItem && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full border border-slate-200 shadow-xl overflow-hidden">
+            <div className="bg-amber-700 text-white p-4 px-6 flex items-center justify-between">
+              <h3 className="font-bold text-sm">Request {requestTargetItem.name}</h3>
+              <button onClick={() => setRequestTargetItem(null)} className="text-white">✕</button>
+            </div>
+
+            {requestSuccess ? (
+              <div className="p-8 text-center space-y-2">
+                <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </div>
+                <h4 className="font-bold text-slate-900 text-base">Request Submitted</h4>
+                <p className="text-xs text-slate-500">
+                  Your need for {requestQuantity} {requestTargetItem.unit} of {requestTargetItem.name} has been broadcasted.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSingleRequestSubmit} className="p-6 space-y-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Quantity Required ({requestTargetItem.unit}) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={requestQuantity}
+                    onChange={(e) => setRequestQuantity(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded font-bold outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Relief Camp / Shelter Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={requestCampName}
+                    onChange={(e) => setRequestCampName(e.target.value)}
+                    placeholder="Camp name"
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Contact Phone <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={requestContact}
+                    onChange={(e) => setRequestContact(e.target.value)}
+                    placeholder="Phone number"
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Urgency</label>
+                  <select
+                    value={requestUrgency}
+                    onChange={(e) => setRequestUrgency(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded outline-none bg-white font-bold"
+                  >
+                    <option value="CRITICAL">CRITICAL</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="MODERATE">MODERATE</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setRequestTargetItem(null)}
+                    className="px-4 py-2 border border-slate-300 rounded text-slate-700 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold rounded shadow-sm"
+                  >
+                    Submit Requisition
                   </button>
                 </div>
               </form>
