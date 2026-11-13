@@ -17,7 +17,8 @@ import {
   Truck,
   MapPin,
   ShoppingBag,
-  ArrowRight
+  ArrowRight,
+  Search
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -39,6 +40,7 @@ export default function UnifiedHub() {
   );
 
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Graphical item selection state: { [itemId]: count }
   const [itemCounts, setItemCounts] = useState({});
@@ -187,6 +189,12 @@ export default function UnifiedHub() {
   // Filtered items
   const filteredItems = STANDARD_ITEMS.filter(item => {
     if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = item.name.toLowerCase().includes(q);
+      const matchDesc = item.description.toLowerCase().includes(q);
+      if (!matchName && !matchDesc) return false;
+    }
     return true;
   });
 
@@ -261,32 +269,46 @@ export default function UnifiedHub() {
         </div>
       </div>
 
-      {/* Category Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <button
-          onClick={() => setSelectedCategory('ALL')}
-          className={`px-3.5 py-1.5 rounded-full font-semibold transition-colors shrink-0 ${
-            selectedCategory === 'ALL'
-              ? 'bg-slate-900 text-white'
-              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          All Items ({STANDARD_ITEMS.length})
-        </button>
+      {/* Search and Category Filter Toolbar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search relief supplies (shirt, pant, pads, water bottles, fruits, medicines, books, blankets)..."
+            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-slate-900 outline-none"
+          />
+        </div>
 
-        {CATEGORIES.map(cat => (
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 border-t border-slate-100">
           <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
+            onClick={() => setSelectedCategory('ALL')}
             className={`px-3.5 py-1.5 rounded-full font-semibold transition-colors shrink-0 ${
-              selectedCategory === cat.id
+              selectedCategory === 'ALL'
                 ? 'bg-slate-900 text-white'
                 : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
             }`}
           >
-            {cat.label}
+            All Items ({STANDARD_ITEMS.length})
           </button>
-        ))}
+
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3.5 py-1.5 rounded-full font-semibold transition-colors shrink-0 ${
+                selectedCategory === cat.id
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* GRAPHICAL ITEMS GRID WITH PLUS/MINUS SYMBOLS NEAR ICON */}
