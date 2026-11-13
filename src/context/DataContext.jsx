@@ -124,6 +124,34 @@ export function DataProvider({ children }) {
     return request;
   };
 
+  // BATCH CREATE Requests (Receiver cart with multiple items)
+  const addBatchRequests = (commonDetails, itemsList) => {
+    const createdRequests = itemsList.map((item, index) => ({
+      id: `REQ-${Math.floor(100 + Math.random() * 900)}-${index + 1}`,
+      zoneName: commonDetails.zoneName || 'Calamity Sector',
+      campName: commonDetails.campName || commonDetails.shelterName || 'Relief Camp / Shelter',
+      shelterName: commonDetails.shelterName || commonDetails.campName || 'Relief Camp / Shelter',
+      pincode: commonDetails.pincode ? String(commonDetails.pincode).trim() : '',
+      requesterName: commonDetails.requesterName || 'Camp Lead',
+      requesterRole: commonDetails.requesterRole || 'Camp Representative',
+      requesterPhone: commonDetails.requesterPhone || '',
+      peopleCount: parseInt(commonDetails.peopleCount, 10) || 0,
+      category: item.category || 'SHELTER_ESSENTIALS',
+      itemName: item.name || item.itemName || 'Basic Necessity',
+      quantityNeeded: parseInt(item.quantity || item.quantityNeeded, 10) || 1,
+      quantityFulfilled: 0,
+      urgency: item.urgency || commonDetails.urgency || 'HIGH',
+      status: 'PENDING',
+      verifiedByOrgId: null,
+      note: item.note || commonDetails.note || '',
+      dateCreated: new Date().toISOString(),
+      dropLocation: commonDetails.dropLocation || 'Camp Main Gate'
+    }));
+
+    setRequests(prev => [...createdRequests, ...prev]);
+    return createdRequests;
+  };
+
   // UPDATE Request (Edit request parameters)
   const updateRequest = (requestId, updatedFields) => {
     setRequests(prev =>
@@ -348,6 +376,8 @@ export function DataProvider({ children }) {
         inventory,
         // Requests CRUD
         addRequest,
+        addBatchRequests,
+        addMultipleRequests: addBatchRequests,
         updateRequest,
         deleteRequest,
         // Workflow actions
