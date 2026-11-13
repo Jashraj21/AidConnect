@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LifeBuoy,
   Heart,
@@ -10,14 +10,17 @@ import {
   Compass,
   ArrowRight,
   Clock,
-  Plus
+  Plus,
+  IndianRupee
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import MoneyDonationModal from '../donor/MoneyDonationModal';
 
 export default function CalamityOverview() {
   const { setActiveView } = useAuth();
-  const { calamityZones, requests, pledges } = useData();
+  const { calamityZones, requests, pledges, totalMonetaryFunds } = useData();
+  const [showMoneyModal, setShowMoneyModal] = useState(false);
 
   const totalAffected = calamityZones.reduce((sum, z) => sum + (z.affectedPeople || 0), 0);
   const totalCamps = calamityZones.reduce((sum, z) => sum + (z.campsCount || 0), 0);
@@ -52,10 +55,18 @@ export default function CalamityOverview() {
               </button>
 
               <button
-                onClick={() => setActiveView('donor-login')}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
+                onClick={() => setShowMoneyModal(true)}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2 ring-2 ring-emerald-400/30"
               >
-                <Heart className="w-4 h-4 fill-current" />
+                <IndianRupee className="w-4 h-4 stroke-[2.5]" />
+                <span>Donate Money</span>
+              </button>
+
+              <button
+                onClick={() => setActiveView('donor-login')}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs sm:text-sm rounded-md shadow transition-colors flex items-center gap-2"
+              >
+                <Heart className="w-4 h-4 fill-current text-emerald-400" />
                 <span>Donor Login</span>
               </button>
 
@@ -78,7 +89,13 @@ export default function CalamityOverview() {
           </div>
 
           {/* Situation numbers ticker */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 pt-8 border-t border-slate-800">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-10 pt-8 border-t border-slate-800">
+            <div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">
+                ₹{totalMonetaryFunds.toLocaleString('en-IN')}
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">Funds Donated (80G)</div>
+            </div>
             <div>
               <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{calamityZones.length}</div>
               <div className="text-xs text-slate-400 mt-0.5">Active Calamity Zones</div>
@@ -98,6 +115,13 @@ export default function CalamityOverview() {
           </div>
         </div>
       </section>
+
+      {/* Money Donation Modal */}
+      {showMoneyModal && (
+        <MoneyDonationModal
+          onClose={() => setShowMoneyModal(false)}
+        />
+      )}
 
       {/* ACTIVE CALAMITY ZONES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6">

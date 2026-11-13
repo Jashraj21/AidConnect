@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Building, MapPin, ArrowRight, Plus, Search, Compass, Navigation } from 'lucide-react';
+import { Building, MapPin, ArrowRight, Plus, Search, Compass, Navigation, IndianRupee } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import NearbyCampsFinder from '../common/NearbyCampsFinder';
+import MoneyDonationModal from '../donor/MoneyDonationModal';
 
 export default function CampDirectory() {
   const { requests } = useData();
   const { setActiveView } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [lookupPin, setLookupPin] = useState('');
+  const [moneyCamp, setMoneyCamp] = useState(null);
 
   // Group requests by camp name
   const campsMap = {};
@@ -188,7 +190,7 @@ export default function CampDirectory() {
                 </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+              <div className="pt-4 mt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <button
                   onClick={() => setActiveView('needs-feed')}
                   className="text-amber-800 hover:text-amber-900 font-bold flex items-center gap-1"
@@ -197,16 +199,33 @@ export default function CampDirectory() {
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
-                <button
-                  onClick={() => setActiveView('donor-login')}
-                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[11px] transition-colors"
-                >
-                  Pledge Aid
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setMoneyCamp(camp)}
+                    className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded font-bold text-[11px] transition-colors flex items-center gap-1"
+                  >
+                    <IndianRupee className="w-3 h-3 text-emerald-400" />
+                    <span>Donate ₹</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveView('donor-login')}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[11px] transition-colors"
+                  >
+                    Pledge Aid
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* DIRECT CAMP MONEY DONATION MODAL */}
+      {moneyCamp && (
+        <MoneyDonationModal
+          defaultCamp={moneyCamp}
+          onClose={() => setMoneyCamp(null)}
+        />
       )}
     </div>
   );

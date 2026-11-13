@@ -64,9 +64,22 @@ export function DataProvider({ children }) {
     }
   });
 
+  const [monetaryDonations, setMonetaryDonations] = useState(() => {
+    try {
+      const saved = localStorage.getItem('donation_monetary_funds');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
     localStorage.setItem('donation_registered_donors', JSON.stringify(registeredDonors));
   }, [registeredDonors]);
+
+  useEffect(() => {
+    localStorage.setItem('donation_monetary_funds', JSON.stringify(monetaryDonations));
+  }, [monetaryDonations]);
 
   const registerDonor = (donorData) => {
     if (!donorData) return;
@@ -82,6 +95,51 @@ export function DataProvider({ children }) {
     });
   };
 
+  const addMonetaryDonation = (donationData) => {
+    const amount = parseFloat(donationData.amount) || 0;
+    if (amount <= 0) return null;
+
+    const receiptNum = `RCP-80G-${Math.floor(100000 + Math.random() * 900000)}`;
+    const utrNum = `UTR/${Date.now().toString().slice(-8)}${Math.floor(100 + Math.random() * 900)}`;
+
+    const donation = {
+      id: `FND-${Date.now()}`,
+      receiptNumber: receiptNum,
+      utr: donationData.utr || utrNum,
+      amount,
+      donorName: donationData.donorName || 'Anonymous Humanitarian Donor',
+      donorPhone: donationData.donorPhone || '',
+      donorEmail: donationData.donorEmail || '',
+      pincode: donationData.pincode || '',
+      panNumber: donationData.panNumber || '',
+      targetType: donationData.targetType || 'GENERAL_RELIEF_POOL',
+      targetCampName: donationData.targetCampName || 'Disaster Relief Emergency Pool',
+      targetPincode: donationData.targetPincode || '',
+      paymentMethod: donationData.paymentMethod || 'UPI',
+      purpose: donationData.purpose || 'Disaster Survival Necessities & Food Water Sponsoring',
+      timestamp: new Date().toISOString(),
+      status: 'VERIFIED_RECEIVED',
+      taxExempt: '80G Approved (50% Tax Deduction Eligible)'
+    };
+
+    setMonetaryDonations(prev => [donation, ...prev]);
+
+    if (donationData.donorName && (donationData.donorPhone || donationData.donorEmail)) {
+      registerDonor({
+        id: `DONOR-${Date.now()}`,
+        name: donationData.donorName,
+        phone: donationData.donorPhone,
+        email: donationData.donorEmail,
+        pincode: donationData.pincode || '',
+        donorType: 'Financial Relief Supporter'
+      });
+    }
+
+    return donation;
+  };
+
+  const totalMonetaryFunds = monetaryDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+
   // Cross-tab live synchronization
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -96,6 +154,12 @@ export function DataProvider({ children }) {
       }
       if (e.key === 'donation_zones') {
         try { setCalamityZones(e.newValue ? JSON.parse(e.newValue) : []); } catch {}
+      }
+      if (e.key === 'donation_monetary_funds') {
+        try { setMonetaryDonations(e.newValue ? JSON.parse(e.newValue) : []); } catch {}
+      }
+      if (e.key === 'donation_registered_donors') {
+        try { setRegisteredDonors(e.newValue ? JSON.parse(e.newValue) : []); } catch {}
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -118,6 +182,14 @@ export function DataProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('donation_inventory', JSON.stringify(inventory));
   }, [inventory]);
+
+  useEffect(() => {
+    localStorage.setItem('donation_registered_donors', JSON.stringify(registeredDonors));
+  }, [registeredDonors]);
+
+  useEffect(() => {
+    localStorage.setItem('donation_monetary_funds', JSON.stringify(monetaryDonations));
+  }, [monetaryDonations]);
 
   // ==========================================
   // 1. REQUESTS CRUD & WORKFLOW
@@ -415,6 +487,10 @@ export function DataProvider({ children }) {
         inventory,
         registeredDonors,
         registerDonor,
+        // Monetary Donations
+        monetaryDonations,
+        addMonetaryDonation,
+        totalMonetaryFunds,
         // Requests CRUD
         addRequest,
         addBatchRequests,

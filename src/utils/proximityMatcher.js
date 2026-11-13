@@ -396,3 +396,4 @@ export function generateHandoverSlip(donor, receiver, itemsText = 'Essential Sup
     transitTime: donor.transitTime
   };
 }
+

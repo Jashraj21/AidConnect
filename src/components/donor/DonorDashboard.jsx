@@ -22,18 +22,35 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
-  Truck
+  Truck,
+  IndianRupee,
+  Receipt,
+  FileText,
+  ShieldCheck,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { CATEGORIES, STANDARD_ITEMS } from '../../data/initialData';
 import PledgeModal from './PledgeModal';
+import MoneyDonationModal from './MoneyDonationModal';
 
 export default function DonorDashboard() {
   const { currentUser } = useAuth();
-  const { requests, pledges, addPledge, updatePledge, deletePledge } = useData();
+  const {
+    requests,
+    pledges,
+    addPledge,
+    updatePledge,
+    deletePledge,
+    monetaryDonations = [],
+    totalMonetaryFunds = 0
+  } = useData();
 
-  const [activeTab, setActiveTab] = useState('donate'); // 'donate' | 'camp-requests' | 'my-pledges'
+  const [activeTab, setActiveTab] = useState('donate'); // 'donate' | 'camp-requests' | 'my-pledges' | 'financial-relief'
+  const [showMoneyModal, setShowMoneyModal] = useState(false);
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [targetCampForMoney, setTargetCampForMoney] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [itemSearchQuery, setItemSearchQuery] = useState('');
 
@@ -189,6 +206,19 @@ export default function DonorDashboard() {
   const totalItemsPledged = myPledges.reduce((sum, p) => sum + (p.quantity || 0), 0);
   const acceptedPledgesCount = myPledges.filter(p => p.status === 'ACCEPTED' || p.status === 'DISTRIBUTED').length;
 
+  // User's own monetary donations
+  const myMonetaryDonations = monetaryDonations.filter(m => {
+    if (!currentUser) return true;
+    return (
+      (currentUser.email && m.donorEmail?.toLowerCase() === currentUser.email?.toLowerCase()) ||
+      (currentUser.phone && m.donorPhone === currentUser.phone) ||
+      (currentUser.name && m.donorName?.toLowerCase() === currentUser.name?.toLowerCase()) ||
+      (!currentUser.email && !currentUser.phone && !currentUser.name)
+    );
+  });
+
+  const myMonetaryTotal = myMonetaryDonations.reduce((sum, m) => sum + (m.amount || 0), 0);
+
   // Filtered standard items for the graphical interface
   const filteredItems = STANDARD_ITEMS.filter(item => {
     if (selectedCategory !== 'ALL' && item.category !== selectedCategory) return false;
@@ -252,8 +282,8 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="flex items-center gap-3 sm:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+          {/* Quick Metrics & Actions */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
             <div className="text-center px-3 py-1 bg-slate-50 rounded-lg border border-slate-200">
               <div className="text-lg font-bold text-slate-900">{myPledges.length}</div>
               <div className="text-[10px] text-slate-500 uppercase font-semibold">My Pledges</div>
@@ -264,13 +294,28 @@ export default function DonorDashboard() {
             </div>
             <div className="text-center px-3 py-1 bg-slate-50 rounded-lg border border-slate-200">
               <div className="text-lg font-bold text-blue-700">{acceptedPledgesCount}</div>
-              <div className="text-[10px] text-slate-500 uppercase font-semibold">Delivered to Camp</div>
+              <div className="text-[10px] text-slate-500 uppercase font-semibold">Delivered</div>
             </div>
+            <div className="text-center px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-200">
+              <div className="text-lg font-bold text-emerald-800">₹{myMonetaryTotal.toLocaleString('en-IN')}</div>
+              <div className="text-[10px] text-emerald-600 uppercase font-semibold">Funds Donated</div>
+            </div>
+
+            <button
+              onClick={() => {
+                setTargetCampForMoney(null);
+                setShowMoneyModal(true);
+              }}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors shrink-0"
+            >
+              <IndianRupee className="w-4 h-4" />
+              <span>Donate Money</span>
+            </button>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mt-6 pt-4 border-t border-slate-200 text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-2 mt-6 pt-4 border-t border-slate-200 text-xs font-semibold">
           <button
             onClick={() => setActiveTab('donate')}
             className={`px-4 py-2 rounded-md transition-colors flex items-center gap-1.5 ${
@@ -281,6 +326,18 @@ export default function DonorDashboard() {
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Select Items to Donate ({STANDARD_ITEMS.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('financial-relief')}
+            className={`px-4 py-2 rounded-md transition-colors flex items-center gap-1.5 ${
+              activeTab === 'financial-relief'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <IndianRupee className="w-3.5 h-3.5" />
+            <span>Financial Relief Aid (₹{myMonetaryTotal > 0 ? myMonetaryTotal.toLocaleString('en-IN') : '80G Tax Free'})</span>
           </button>
 
           <button
@@ -471,6 +528,213 @@ export default function DonorDashboard() {
         </div>
       )}
 
+      {/* TAB: FINANCIAL RELIEF AID & 80G DONATIONS */}
+      {activeTab === 'financial-relief' && (
+        <div className="space-y-6">
+          {/* Hero Banner */}
+          <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white rounded-xl p-6 border border-slate-800 shadow-md">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>100% Tax Deductible (Sec 80G)</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                  Emergency Financial Relief Aid Pool
+                </h2>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  Financial donations empower disaster relief camps to purchase clean drinking water tankers, perishable food, infant milk, and urgent prescription medications directly from local suppliers without transport delays.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetCampForMoney(null);
+                    setShowMoneyModal(true);
+                  }}
+                  className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2 text-xs transition-colors"
+                >
+                  <IndianRupee className="w-4 h-4" />
+                  <span>Contribute Funds Now</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Stat Highlights */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-800 text-xs">
+              <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
+                <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Pool Raised</div>
+                <div className="text-lg font-bold text-emerald-400 mt-0.5">
+                  ₹{totalMonetaryFunds.toLocaleString('en-IN')}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Platform disaster ledger</div>
+              </div>
+              <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
+                <div className="text-[10px] text-slate-400 uppercase font-semibold">My Financial Aid</div>
+                <div className="text-lg font-bold text-white mt-0.5">
+                  ₹{myMonetaryTotal.toLocaleString('en-IN')}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{myMonetaryDonations.length} contributions</div>
+              </div>
+              <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
+                <div className="text-[10px] text-slate-400 uppercase font-semibold">Tax Exemption</div>
+                <div className="text-lg font-bold text-amber-300 mt-0.5">50% Deduction</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">IT Act Section 80G</div>
+              </div>
+              <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
+                <div className="text-[10px] text-slate-400 uppercase font-semibold">Deployment Speed</div>
+                <div className="text-lg font-bold text-sky-400 mt-0.5">&lt; 3 Hours</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Direct to camp gate</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Preset Tier Selector */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Heart className="w-4 h-4 text-emerald-600" />
+                <span>One-Click Impact Sponsoring</span>
+              </h3>
+              <span className="text-slate-500 text-xs">Instant UPI & Card checkout with official 80G receipt</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
+              {[
+                { amount: 500, label: '₹500', impact: '25 hot meals & clean drinking water' },
+                { amount: 1000, label: '₹1,000', impact: '100 drinking water bottles for shelter families' },
+                { amount: 2500, label: '₹2,500', impact: '10 family first aid & sanitary packs' },
+                { amount: 5000, label: '₹5,000', impact: 'Waterproof tarpaulins & warm blankets' },
+                { amount: 10000, label: '₹10,000', impact: '200 hot meals at camp community kitchen' },
+              ].map(tier => (
+                <button
+                  key={tier.amount}
+                  type="button"
+                  onClick={() => {
+                    setTargetCampForMoney(null);
+                    setShowMoneyModal(true);
+                  }}
+                  className="p-3.5 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/50 text-left transition-all group flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="text-base font-bold text-slate-900 group-hover:text-emerald-700 flex items-center">
+                      <span>{tier.label}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 mt-1 leading-snug">
+                      {tier.impact}
+                    </div>
+                  </div>
+                  <div className="mt-3 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                    <span>Sponsor this</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* User's Financial Contributions & 80G Receipts History */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden space-y-0">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-emerald-600" />
+                  <span>My Monetary Contribution History & 80G Tax Receipts</span>
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Every contribution is recorded with official reference numbers and download-ready tax vouchers.
+                </p>
+              </div>
+
+              {myMonetaryDonations.length > 0 && (
+                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  {myMonetaryDonations.length} Verified Donations
+                </span>
+              )}
+            </div>
+
+            {myMonetaryDonations.length === 0 ? (
+              <div className="p-10 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <IndianRupee className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-800 text-sm">No Financial Donations Recorded Yet</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    When you donate funds for camp meals, drinking water, or medicine, your verified 80G tax deduction receipts will be preserved here for easy printing and tax filing.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMoneyModal(true)}
+                  className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-1.5"
+                >
+                  <IndianRupee className="w-3.5 h-3.5" />
+                  <span>Make Your First Relief Donation</span>
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-200 text-xs">
+                {myMonetaryDonations.map(don => (
+                  <div key={don.id} className="p-4 sm:p-5 hover:bg-slate-50/70 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          {don.receiptNumber}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                          {don.status || 'VERIFIED_RECEIVED'}
+                        </span>
+                        <span className="text-slate-400 text-[11px] font-mono">
+                          {new Date(don.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="text-slate-800 font-medium">
+                        Target Beneficiary: <strong className="text-slate-900">{don.targetCampName}</strong>
+                        {don.targetPincode && (
+                          <span className="ml-2 font-mono bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                            PIN: {don.targetPincode}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-slate-500 text-[11px] flex flex-wrap items-center gap-3">
+                        <span>Payment Mode: <strong className="text-slate-700">{don.paymentMethod}</strong></span>
+                        <span>Bank UTR: <strong className="font-mono text-slate-700">{don.utr}</strong></span>
+                        {don.panNumber && <span>PAN: <strong className="font-mono text-slate-700">{don.panNumber}</strong></span>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-emerald-700">
+                          ₹{don.amount.toLocaleString('en-IN')}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Sec 80G Eligible
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setViewingReceipt(don)}
+                        className="px-3 py-2 border border-slate-300 hover:border-emerald-600 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>View / Print 80G Receipt</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* TAB 2: BROWSE URGENT CAMP SHORTAGES & PLEDGE DIRECTLY */}
       {activeTab === 'camp-requests' && (
         <div className="space-y-4">
@@ -538,13 +802,25 @@ export default function DonorDashboard() {
                             {req.status}
                           </span>
                           {!isDone && (
-                            <button
-                              onClick={() => setPledgeTargetRequest(req)}
-                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-sm flex items-center gap-1.5 transition-colors"
-                            >
-                              <Heart className="w-3.5 h-3.5 fill-current" />
-                              <span>Pledge This Need</span>
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => setPledgeTargetRequest(req)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-sm flex items-center gap-1.5 transition-colors"
+                              >
+                                <Heart className="w-3.5 h-3.5 fill-current" />
+                                <span>Pledge Supplies</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setTargetCampForMoney(req);
+                                  setShowMoneyModal(true);
+                                }}
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded shadow-sm flex items-center gap-1 transition-colors"
+                              >
+                                <IndianRupee className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Donate Money</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -929,6 +1205,30 @@ export default function DonorDashboard() {
             setPledgeTargetRequest(null);
             setActiveTab('my-pledges');
           }}
+        />
+      )}
+
+      {/* MONETARY DONATION MODAL */}
+      {showMoneyModal && (
+        <MoneyDonationModal
+          onClose={() => {
+            setShowMoneyModal(false);
+            setTargetCampForMoney(null);
+          }}
+          defaultCamp={targetCampForMoney}
+          currentUser={currentUser}
+          onDonationComplete={() => {
+            setActiveTab('financial-relief');
+          }}
+        />
+      )}
+
+      {/* 80G RECEIPT VIEWER MODAL */}
+      {viewingReceipt && (
+        <MoneyDonationModal
+          onClose={() => setViewingReceipt(null)}
+          currentUser={currentUser}
+          initialReceipt={viewingReceipt}
         />
       )}
     </div>
