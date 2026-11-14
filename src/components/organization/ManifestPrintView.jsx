@@ -45,10 +45,10 @@ export default function ManifestPrintView({ onClose }) {
                 <div className="w-8 h-8 rounded bg-red-600 text-white flex items-center justify-center font-bold">
                   <LifeBuoy className="w-5 h-5" />
                 </div>
-                <h1 className="text-xl font-bold tracking-tight">DoNation Relief Manifest</h1>
+                <h1 className="text-xl font-bold tracking-tight">AidConnect Relief Manifest</h1>
               </div>
               <p className="text-xs text-slate-600 mt-1">
-                Disaster Relief Aid Convoy Manifest
+                Humanitarian Aid & Supply Convoy Manifest
               </p>
             </div>
             <div className="text-right text-xs">

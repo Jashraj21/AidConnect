@@ -29,7 +29,7 @@ export default function DirectReceiverContactModal({ request, pledge = null, onC
   const note = request.note || '';
 
   // Pre-formatted message for WhatsApp / SMS
-  const dispatchMessage = `Hello ${receiverName}, I have pledged to fulfill your relief requirement on DoNation:
+  const dispatchMessage = `Hello ${receiverName}, I have pledged to fulfill your relief requirement on AidConnect:
 - Item: ${fulfilledQty} × ${itemName}
 - Camp: ${campName}${pincode ? ` (PIN ${pincode})` : ''}
 ${pledge ? `- Pledge Tracking ID: #${pledge.id}` : `- Request ID: #${request.id}`}

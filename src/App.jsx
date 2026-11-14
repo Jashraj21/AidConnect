@@ -89,10 +89,10 @@ export default function App() {
                 <div className="w-6 h-6 rounded bg-red-600 text-white flex items-center justify-center font-bold">
                   <LifeBuoy className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-sm font-bold text-white tracking-tight">DoNation</span>
+                <span className="text-sm font-bold text-white tracking-tight">AidConnect</span>
               </div>
               <p className="text-xs text-slate-400">
-                Disaster relief basic needs donation and coordination platform.
+                Basic needs donation and humanitarian aid coordination platform.
               </p>
             </div>
 
@@ -173,7 +173,7 @@ export default function App() {
           </div>
 
           <div className="text-[11px] text-slate-500 text-center">
-            DoNation — Web Application for Disaster Relief Basic Needs
+            AidConnect — Web Application for Basic Needs & Humanitarian Aid Coordination
           </div>
         </div>
       </footer>

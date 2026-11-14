@@ -39,7 +39,7 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
   const campName = request.shelterName || request.campName || 'Relief Camp';
   const dropLocation = request.dropLocation || 'Camp Main Gate / Reception Point';
 
-  const dispatchMessage = `Hello ${receiverName}, I have pledged to fulfill your relief requirement on DoNation:
+  const dispatchMessage = `Hello ${receiverName}, I have pledged to fulfill your relief requirement on AidConnect:
 - Item: ${quantity} × ${request.itemName}
 - For: ${campName}${request.pincode ? ` (PIN ${request.pincode})` : ''}
 ${completedPledge ? `- Pledge Tracking: #${completedPledge.id}` : `- Request ID: #${request.id}`}

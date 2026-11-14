@@ -43,16 +43,12 @@ export default function CalamityOverview() {
       <section className="bg-slate-900 text-white border-b border-slate-800 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
           <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-red-600/20 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider">
-              <span>Disaster Relief Aid Coordination</span>
-            </div>
-
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Donation of Basic Needs in Places Affected by Natural Calamities.
+              Donation & Coordination of Basic Needs.
             </h1>
 
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-              Direct, transparent coordination of essential survival items between donors, relief camps, and helping organizations.
+              Direct, transparent coordination of essential survival items between donors, shelters, and helping organizations.
             </p>
 
             {/* Role Gateways */}
@@ -149,7 +145,7 @@ export default function CalamityOverview() {
             <div>
               <div className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
                 <Boxes className="w-4 h-4 text-emerald-600" />
-                <span>Live Disaster Relief Dashboard</span>
+                <span>Live Aid & Operations Dashboard</span>
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Relief Resources & Aid Status</h2>
               <p className="text-xs text-slate-500 mt-1">

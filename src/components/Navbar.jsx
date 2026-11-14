@@ -38,10 +38,7 @@ export default function Navbar() {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xl font-bold tracking-tight text-slate-900">DoNation</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200 uppercase tracking-wider">
-                    Disaster Relief
-                  </span>
+                  <span className="text-xl font-bold tracking-tight text-slate-900">AidConnect</span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium">Basic Needs Humanitarian Aid Network</p>
               </div>
@@ -57,7 +54,7 @@ export default function Navbar() {
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                Disaster Overview
+                Overview
               </button>
 
               <button
@@ -239,7 +236,7 @@ export default function Navbar() {
               onClick={() => { setActiveView('home'); setMobileMenuOpen(false); }}
               className="text-left px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded"
             >
-              Disaster Overview
+              Overview
             </button>
             <button
               onClick={() => { setActiveView('supply-hub'); setMobileMenuOpen(false); }}

@@ -171,7 +171,7 @@ export default function MoneyDonationModal({
                   <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                     Official 80G Tax Exemption Certificate
                   </div>
-                  <h4 className="font-bold text-slate-900 text-base">DoNation Humanitarian Aid Fund</h4>
+                  <h4 className="font-bold text-slate-900 text-base">AidConnect Humanitarian Aid Fund</h4>
                 </div>
                 <div className="text-right font-mono">
                   <div className="text-[10px] text-slate-500">Receipt Number</div>
