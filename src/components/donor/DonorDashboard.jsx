@@ -29,7 +29,10 @@ import {
   ShieldCheck,
   Download,
   Phone,
-  MessageSquare
+  MessageSquare,
+  Camera,
+  Eye,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -38,6 +41,7 @@ import PledgeModal from './PledgeModal';
 import MoneyDonationModal from './MoneyDonationModal';
 import DirectReceiverContactModal from '../common/DirectReceiverContactModal';
 import ProfileEditModal from '../common/ProfileEditModal';
+import GoodsPhotoUploader from '../common/GoodsPhotoUploader';
 
 export default function DonorDashboard() {
   const { currentUser } = useAuth();
@@ -75,6 +79,11 @@ export default function DonorDashboard() {
   // Checkout modal
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+
+  // Photos of goods state
+  const [goodsPhotos, setGoodsPhotos] = useState([]);
+  const [previewLightboxPhoto, setPreviewLightboxPhoto] = useState(null);
+  const [quickPhotoPledge, setQuickPhotoPledge] = useState(null);
 
   // Form states
   const [donorName, setDonorName] = useState(currentUser?.name || '');
@@ -166,6 +175,7 @@ export default function DonorDashboard() {
         quantity: sel.quantity,
         deliveryMethod: 'DROPOFF_AT_HUB',
         dropoffHub: dropoffHub || 'Nearest Community Relief Center',
+        photos: goodsPhotos,
         trackingNotes: donorNotes || 'Direct graphical donation pledge'
       });
     });
@@ -173,6 +183,7 @@ export default function DonorDashboard() {
     setCheckoutSuccess(true);
     setTimeout(() => {
       setItemCounts({});
+      setGoodsPhotos([]);
       setShowCheckoutModal(false);
       setCheckoutSuccess(false);
       setActiveTab('my-pledges');
@@ -187,6 +198,7 @@ export default function DonorDashboard() {
       quantity: parseInt(editingPledge.quantity, 10) || 1,
       dropoffHub: editingPledge.dropoffHub,
       deliveryMethod: editingPledge.deliveryMethod,
+      photos: editingPledge.photos || [],
       trackingNotes: editingPledge.trackingNotes
     });
     setEditingPledge(null);
@@ -953,6 +965,7 @@ export default function DonorDashboard() {
                       <th className="py-3 px-4">Pledge ID</th>
                       <th className="py-3 px-4">Relief Item</th>
                       <th className="py-3 px-4">Quantity</th>
+                      <th className="py-3 px-4">Goods Photos</th>
                       <th className="py-3 px-4">Destination Camp</th>
                       <th className="py-3 px-4">Status & Progress</th>
                       <th className="py-3 px-4 text-center">Direct Contact</th>
@@ -978,6 +991,38 @@ export default function DonorDashboard() {
                           <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{p.id}</td>
                           <td className="py-3.5 px-4 font-semibold text-slate-800">{p.itemName}</td>
                           <td className="py-3.5 px-4 font-bold text-slate-900">{p.quantity}</td>
+                          <td className="py-3.5 px-4">
+                            {p.photos && p.photos.length > 0 ? (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {p.photos.map((ph, idx) => (
+                                  <button
+                                    type="button"
+                                    key={idx}
+                                    onClick={() => setPreviewLightboxPhoto(ph)}
+                                    className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-500 transition-all shadow-xs relative group shrink-0"
+                                    title="Click to enlarge photo"
+                                  >
+                                    <img src={ph} alt="Goods" className="w-full h-full object-cover" />
+                                    <span className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                                      <Eye className="w-3 h-3" />
+                                    </span>
+                                  </button>
+                                ))}
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  ({p.photos.length})
+                                </span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setQuickPhotoPledge(p)}
+                                className="px-2 py-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 border border-slate-200 hover:border-emerald-300 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors"
+                              >
+                                <Camera className="w-3 h-3 text-slate-400" />
+                                <span>+ Add Photos</span>
+                              </button>
+                            )}
+                          </td>
                           <td className="py-3.5 px-4 text-slate-600">
                             <div>{p.dropoffHub || 'Designated Camp / Hub'}</div>
                             {matchingReq.requesterName && (
@@ -1135,6 +1180,17 @@ export default function DonorDashboard() {
                   </div>
                 </div>
 
+                {/* Goods Photos Section - Added after donor specifies what to donate */}
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5">
+                  <GoodsPhotoUploader
+                    photos={goodsPhotos}
+                    onChange={setGoodsPhotos}
+                    maxPhotos={4}
+                    title="Photos of Donated Goods (Optional but Recommended)"
+                    subtitle="Attach photos of the items/parcel you're donating so camp coordinators can verify them."
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
@@ -1258,6 +1314,17 @@ export default function DonorDashboard() {
                 />
               </div>
 
+              {/* Goods Photos in Edit Modal */}
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <GoodsPhotoUploader
+                  photos={editingPledge.photos || []}
+                  onChange={(photos) => setEditingPledge({ ...editingPledge, photos })}
+                  maxPhotos={4}
+                  title="Update Goods Photos"
+                  subtitle="Add or remove photos of this pledged relief item."
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="button"
@@ -1326,6 +1393,86 @@ export default function DonorDashboard() {
       {/* MANAGE PROFILE MODAL */}
       {showProfileModal && (
         <ProfileEditModal onClose={() => setShowProfileModal(false)} />
+      )}
+
+      {/* QUICK PHOTO MODAL */}
+      {quickPhotoPledge && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full border border-slate-200 shadow-xl overflow-hidden text-xs">
+            <div className="bg-slate-900 text-white p-4 px-6 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sm">Add Goods Photos to #{quickPhotoPledge.id}</h3>
+              </div>
+              <button onClick={() => setQuickPhotoPledge(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-slate-700 font-medium">
+                Pledged Item: <strong className="text-slate-900">{quickPhotoPledge.quantity} × {quickPhotoPledge.itemName}</strong>
+              </div>
+              <GoodsPhotoUploader
+                photos={quickPhotoPledge.photos || []}
+                onChange={(newPhotos) => setQuickPhotoPledge({ ...quickPhotoPledge, photos: newPhotos })}
+                maxPhotos={4}
+                title="Goods / Parcel Photos"
+                subtitle="Upload or capture pictures of your supplies."
+              />
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setQuickPhotoPledge(null)}
+                  className="px-4 py-2 border border-slate-300 rounded text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updatePledge(quickPhotoPledge.id, { photos: quickPhotoPledge.photos || [] });
+                    setQuickPhotoPledge(null);
+                  }}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-sm transition-colors"
+                >
+                  Save Photos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIGHTBOX FOR PREVIEWING GOODS PHOTO */}
+      {previewLightboxPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewLightboxPhoto(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-3 text-white border-b border-slate-800">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <span>Donated Goods Verification Photo</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewLightboxPhoto(null)}
+                className="text-slate-400 hover:text-white p-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-2 flex items-center justify-center bg-black/50">
+              <img
+                src={previewLightboxPhoto}
+                alt="Donated Goods High Resolution Preview"
+                className="max-h-[75vh] w-auto max-w-full rounded-lg object-contain"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

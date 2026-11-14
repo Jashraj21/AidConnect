@@ -396,6 +396,7 @@ export function DataProvider({ children }) {
       quantity: qty,
       deliveryMethod: pledgeData.deliveryMethod || 'DROPOFF_AT_HUB',
       dropoffHub: pledgeData.dropoffHub || 'Regional Staging Hub',
+      photos: Array.isArray(pledgeData.photos) ? pledgeData.photos : (pledgeData.photo ? [pledgeData.photo] : []),
       pledgeDate: new Date().toISOString(),
       status: 'CONFIRMED', // CONFIRMED -> IN_TRANSIT -> DELIVERED_TO_HUB -> ACCEPTED
       trackingNotes: pledgeData.trackingNotes || 'Pledge registered by donor'

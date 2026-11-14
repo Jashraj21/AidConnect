@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import GoodsPhotoUploader from '../common/GoodsPhotoUploader';
 
 export default function PledgeModal({ request, onClose, onSuccess }) {
   const { currentUser } = useAuth();
@@ -29,6 +30,7 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
   const [donorPincode, setDonorPincode] = useState(currentUser?.pincode || '');
   const [deliveryMethod, setDeliveryMethod] = useState('DIRECT_CAMP_DROPOFF');
   const [dropoffHub, setDropoffHub] = useState('');
+  const [goodsPhotos, setGoodsPhotos] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedPledge, setCompletedPledge] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -44,7 +46,7 @@ export default function PledgeModal({ request, onClose, onSuccess }) {
 - For: ${campName}${request.pincode ? ` (PIN ${request.pincode})` : ''}
 ${completedPledge ? `- Pledge Tracking: #${completedPledge.id}` : `- Request ID: #${request.id}`}
 - Delivery Gate: ${dropLocation}
-
+${goodsPhotos.length > 0 ? `- Goods Photos: Attached (${goodsPhotos.length} photo(s) on AidConnect)\n` : ''}
 When can I deliver this parcel to you? Thank you.`;
 
   const encodedMsg = encodeURIComponent(dispatchMessage);
@@ -77,7 +79,8 @@ When can I deliver this parcel to you? Thank you.`;
       itemName: request.itemName,
       quantity: parseInt(quantity, 10),
       deliveryMethod,
-      dropoffHub: destination
+      dropoffHub: destination,
+      photos: goodsPhotos
     });
 
     setIsSubmitting(false);
@@ -147,6 +150,25 @@ When can I deliver this parcel to you? Thank you.`;
                 <span className="font-semibold text-slate-700">{dropLocation}</span>
               </div>
             </div>
+
+            {/* Attached Goods Photos in confirmation */}
+            {completedPledge.photos && completedPledge.photos.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                  <span>Attached Goods Verification Photos ({completedPledge.photos.length})</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Uploaded by You
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {completedPledge.photos.map((ph, idx) => (
+                    <div key={idx} className="rounded-lg overflow-hidden border border-slate-200 aspect-square">
+                      <img src={ph} alt={`Goods parcel ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* DIRECT RECEIVER CONTACT CARD */}
             <div className="border-2 border-emerald-500/50 bg-emerald-50/40 rounded-xl p-4 space-y-3">
@@ -377,6 +399,17 @@ When can I deliver this parcel to you? Thank you.`;
                 />
               </div>
             )}
+
+            {/* Photos of Goods after specifying donation */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5">
+              <GoodsPhotoUploader
+                photos={goodsPhotos}
+                onChange={setGoodsPhotos}
+                maxPhotos={4}
+                title="Photos of Donated Goods (Optional)"
+                subtitle="Upload or capture pictures of your supplies so the camp coordinator can verify what is arriving."
+              />
+            </div>
 
             {/* Donor info */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

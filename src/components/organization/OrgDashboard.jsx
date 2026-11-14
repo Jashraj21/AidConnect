@@ -38,7 +38,9 @@ import {
   Share2,
   QrCode,
   ExternalLink,
-  FileText
+  FileText,
+  Camera,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -97,6 +99,7 @@ export default function OrgDashboard({ onOpenManifest }) {
   const [editingStock, setEditingStock] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [previewGoodsPhoto, setPreviewGoodsPhoto] = useState(null);
 
   // Bank Account State & Handlers (Punjab National Bank Passbook Details)
   const [copiedBankField, setCopiedBankField] = useState('');
@@ -1904,6 +1907,7 @@ Please transfer funds directly via NEFT, RTGS, IMPS or UPI to this bank account.
                       <th className="py-3 px-4">Donor / Organization</th>
                       <th className="py-3 px-4">Relief Item</th>
                       <th className="py-3 px-4">Quantity</th>
+                      <th className="py-3 px-4">Goods Photos</th>
                       <th className="py-3 px-4">Staging Hub / Camp</th>
                       <th className="py-3 px-4">Status & Logistics</th>
                       <th className="py-3 px-4 text-right">Action</th>
@@ -1916,6 +1920,31 @@ Please transfer funds directly via NEFT, RTGS, IMPS or UPI to this bank account.
                         <td className="py-3.5 px-4 font-semibold text-slate-900">{p.donorName}</td>
                         <td className="py-3.5 px-4 font-medium text-slate-800">{p.itemName}</td>
                         <td className="py-3.5 px-4 font-bold text-slate-900">{p.quantity}</td>
+                        <td className="py-3.5 px-4">
+                          {p.photos && p.photos.length > 0 ? (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {p.photos.map((ph, idx) => (
+                                <button
+                                  type="button"
+                                  key={idx}
+                                  onClick={() => setPreviewGoodsPhoto(ph)}
+                                  className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition-all shadow-xs relative group shrink-0"
+                                  title="Inspect goods verification photo"
+                                >
+                                  <img src={ph} alt="Goods" className="w-full h-full object-cover" />
+                                  <span className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                                    <Eye className="w-3 h-3" />
+                                  </span>
+                                </button>
+                              ))}
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                ({p.photos.length})
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] italic">No photos</span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 text-slate-600">{p.dropoffHub || 'Central Staging Hub'}</td>
                         <td className="py-3.5 px-4">
                           <select
@@ -2830,6 +2859,37 @@ Please transfer funds directly via NEFT, RTGS, IMPS or UPI to this bank account.
           isOpen={showProfileModal}
           onClose={() => setShowProfileModal(false)}
         />
+      )}
+
+      {/* Lightbox for inspecting goods photo */}
+      {previewGoodsPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewGoodsPhoto(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-3 text-white border-b border-slate-800">
+              <span className="text-xs font-bold">Donated Goods Verification Photo</span>
+              <button
+                type="button"
+                onClick={() => setPreviewGoodsPhoto(null)}
+                className="text-slate-400 hover:text-white p-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-2 flex items-center justify-center bg-black/50">
+              <img
+                src={previewGoodsPhoto}
+                alt="Donated Goods"
+                className="max-h-[75vh] w-auto max-w-full rounded-lg object-contain"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

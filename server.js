@@ -742,7 +742,7 @@ app.get('/api/pledges', (req, res) => {
 });
 
 app.post('/api/pledges', (req, res) => {
-  const { requestId, donorName, donorPhone, donorEmail, pincode, itemName, quantity, deliveryMethod, dropoffHub, trackingNotes } = req.body;
+  const { requestId, donorName, donorPhone, donorEmail, pincode, itemName, quantity, deliveryMethod, dropoffHub, trackingNotes, photos } = req.body;
 
   const newPledge = {
     id: `PLG-${Math.floor(100 + Math.random() * 900)}`,
@@ -755,6 +755,7 @@ app.post('/api/pledges', (req, res) => {
     quantity: parseInt(quantity, 10) || 1,
     deliveryMethod: deliveryMethod || 'DIRECT_CAMP_DROPOFF',
     dropoffHub: dropoffHub || 'Designated Camp Gate',
+    photos: Array.isArray(photos) ? photos : (photos ? [photos] : []),
     status: 'PLEDGED', // PLEDGED -> IN_TRANSIT -> DELIVERED_TO_HUB -> ACCEPTED
     pledgeDate: new Date().toISOString(),
     trackingNotes: trackingNotes || 'Pledge registered on AidConnect'

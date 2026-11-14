@@ -125,6 +125,28 @@ Could you please confirm the best time and gate for parcel handover? Thank you.`
             )}
           </div>
 
+          {/* Photos of Goods being delivered */}
+          {pledge?.photos?.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                <span className="flex items-center gap-1">
+                  <span>📸 Attached Goods Verification Photos</span>
+                  <span className="text-slate-400 font-mono">({pledge.photos.length})</span>
+                </span>
+                <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Ready for Handover
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {pledge.photos.map((ph, idx) => (
+                  <div key={idx} className="rounded-lg overflow-hidden border border-slate-200 aspect-square">
+                    <img src={ph} alt={`Donated item ${idx + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Receiver Verified Contact Card */}
           <div className="border-2 border-emerald-500/40 bg-emerald-50/30 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
