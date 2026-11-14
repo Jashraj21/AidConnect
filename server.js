@@ -780,13 +780,37 @@ app.post('/api/pledges', (req, res) => {
 // ============================================================================
 // 6. FINANCIAL RELIEF & 80G CONTRIBUTIONS
 // ============================================================================
+const NGO_BANK_DETAILS = {
+  bankName: 'Punjab National Bank',
+  hindiBankName: 'पंजाब नैशनल बैंक',
+  accountHolder: 'JAYA ATMA SAHAYAK GOT',
+  accountNumber: '0643010120852',
+  ifscCode: 'PUNB0064320',
+  accountType: 'SAVINGS FUND GENERAL',
+  branch: 'GOURISAGAR, SIBSAGAR-785664',
+  branchPhone: '03776-261409',
+  micrCode: '785024518',
+  cifId: 'U43970691',
+  principalNodalOfficerPhone: '0124-4126244',
+  tollFreeCustomerCare: '1800 1800 / 1800 2021',
+  dicgcInsured: 'Insured by DICGC up to ₹5,00,000'
+};
+
+// GET official NGO bank account particulars for donations
+app.get('/api/ngo/bank-account', (req, res) => {
+  res.json({
+    bankDetails: NGO_BANK_DETAILS,
+    note: 'Authorized Punjab National Bank account for direct donor contributions.'
+  });
+});
+
 app.get('/api/donations/money', (req, res) => {
   const total = db.monetaryDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
   res.json({ totalFunds: total, count: db.monetaryDonations.length, donations: db.monetaryDonations });
 });
 
 app.post('/api/donations/money', (req, res) => {
-  const { amount, donorName, donorPhone, donorEmail, pincode, panNumber, targetCampName, targetPincode, paymentMethod, purpose } = req.body;
+  const { amount, donorName, donorPhone, donorEmail, pincode, panNumber, targetCampName, targetPincode, paymentMethod, utr: clientUtr, purpose } = req.body;
 
   const numAmount = parseFloat(amount) || 0;
   if (numAmount < 50) {
@@ -794,7 +818,7 @@ app.post('/api/donations/money', (req, res) => {
   }
 
   const receiptNumber = `RCP-80G-${Math.floor(100000 + Math.random() * 900000)}`;
-  const utr = `UTR/${Date.now().toString().slice(-8)}${Math.floor(100 + Math.random() * 900)}`;
+  const utr = clientUtr || `UTR/${Date.now().toString().slice(-8)}${Math.floor(100 + Math.random() * 900)}`;
 
   const donation = {
     id: `FND-${Date.now()}`,
@@ -867,3 +891,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+

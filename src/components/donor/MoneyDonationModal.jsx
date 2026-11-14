@@ -16,10 +16,14 @@ import {
   Phone,
   User,
   Mail,
-  FileText
+  FileText,
+  Landmark,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { lookupPincode } from '../../utils/pincodeService';
+import { NGO_BANK_DETAILS } from '../../data/initialData';
 
 const PRESET_TIERS = [
   { amount: 500, label: '₹500', impact: 'Sponsors 25 meals & clean drinking water' },
@@ -46,8 +50,16 @@ export default function MoneyDonationModal({
   const [selectedCampName, setSelectedCampName] = useState(defaultCamp?.shelterName || defaultCamp?.campName || '');
   const [selectedCampPin, setSelectedCampPin] = useState(defaultCamp?.pincode || '');
 
-  const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CARD' | 'NETBANKING'
+  const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER'); // 'BANK_TRANSFER' | 'UPI' | 'CARD' | 'NETBANKING'
   const [upiId, setUpiId] = useState('');
+  const [bankUtr, setBankUtr] = useState('');
+  const [copiedBankField, setCopiedBankField] = useState('');
+
+  const handleCopyBank = (text, fieldName) => {
+    navigator.clipboard.writeText(text);
+    setCopiedBankField(fieldName);
+    setTimeout(() => setCopiedBankField(''), 2000);
+  };
 
   // Donor Details
   const [donorDetails, setDonorDetails] = useState({
@@ -112,6 +124,7 @@ export default function MoneyDonationModal({
         targetCampName: targetCamp,
         targetPincode: targetPin,
         paymentMethod,
+        utr: bankUtr || (paymentMethod === 'UPI' ? upiId : undefined),
         purpose: 'Disaster Survival Necessities Sponsoring'
       });
 
@@ -450,7 +463,23 @@ export default function MoneyDonationModal({
                 4. Select Payment Method
               </label>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                  className={`p-2.5 rounded-lg border text-center transition-all ${
+                    paymentMethod === 'BANK_TRANSFER'
+                      ? 'border-amber-600 bg-amber-50 text-amber-950 font-bold ring-2 ring-amber-500/40'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                  }`}
+                >
+                  <div className="font-bold flex items-center justify-center gap-1">
+                    <Landmark className="w-4 h-4 text-amber-600" />
+                    <span>Direct Bank</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">PNB Account</div>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('UPI')}
@@ -499,6 +528,108 @@ export default function MoneyDonationModal({
                   <div className="text-[10px] text-slate-500 mt-0.5">SBI, HDFC, ICICI</div>
                 </button>
               </div>
+
+              {/* Payment Details Drawer */}
+              {paymentMethod === 'BANK_TRANSFER' && (
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 p-4 rounded-xl border-2 border-amber-300 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-amber-600 text-white font-black text-xs flex items-center justify-center">
+                        PNB
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-xs text-slate-900">
+                          {NGO_BANK_DETAILS.bankName} ({NGO_BANK_DETAILS.hindiBankName})
+                        </div>
+                        <div className="text-[10px] text-slate-600">
+                          Beneficiary: <strong className="text-slate-900">{NGO_BANK_DETAILS.accountHolder}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                      Passbook Verified
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 bg-white rounded-lg border border-amber-200 space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Account Number (A/C No)
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-base font-extrabold text-slate-950">
+                          {NGO_BANK_DETAILS.accountNumber}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyBank(NGO_BANK_DETAILS.accountNumber, 'acc')}
+                          className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded text-[11px] flex items-center gap-1 transition-colors"
+                        >
+                          {copiedBankField === 'acc' ? (
+                            <>
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-white rounded-lg border border-amber-200 space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        IFSC Code (All Transfers)
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-base font-extrabold text-slate-950">
+                          {NGO_BANK_DETAILS.ifscCode}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyBank(NGO_BANK_DETAILS.ifscCode, 'ifsc')}
+                          className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded text-[11px] flex items-center gap-1 transition-colors"
+                        >
+                          {copiedBankField === 'ifsc' ? (
+                            <>
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-600 bg-white/80 p-2.5 rounded-lg border border-amber-100 space-y-1">
+                    <div className="font-bold text-slate-800">Transfer Instructions:</div>
+                    <p>
+                      Open your bank app, GPay, PhonePe, or Paytm &rarr; Select <strong>"To Bank Account"</strong> &rarr; Enter A/C <span className="font-mono font-bold text-slate-900">0643010120852</span> and IFSC <span className="font-mono font-bold text-slate-900">PUNB0064320</span>.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 text-[11px] mb-1">
+                      Bank Transfer Reference / UTR Number (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={bankUtr}
+                      onChange={(e) => setBankUtr(e.target.value)}
+                      placeholder="e.g. UTR / Transaction ID (from bank SMS / receipt)"
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg outline-none font-mono text-xs bg-white focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Payment Details Drawer */}
               {paymentMethod === 'UPI' && (

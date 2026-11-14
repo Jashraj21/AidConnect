@@ -42,3 +42,20 @@ export const SAMPLE_ORGANIZATIONS = [];
 export const INITIAL_REQUESTS = [];
 export const INITIAL_PLEDGES = [];
 export const INITIAL_INVENTORY = [];
+
+export const NGO_BANK_DETAILS = {
+  bankName: 'Punjab National Bank',
+  hindiBankName: 'पंजाब नैशनल बैंक',
+  accountHolder: 'JAYA ATMA SAHAYAK GOT',
+  accountNumber: '0643010120852',
+  ifscCode: 'PUNB0064320',
+  accountType: 'SAVINGS FUND GENERAL',
+  branch: 'GOURISAGAR, SIBSAGAR-785664',
+  branchPhone: '03776-261409',
+  micrCode: '785024518',
+  cifId: 'U43970691',
+  principalNodalOfficerPhone: '0124-4126244',
+  tollFreeCustomerCare: '1800 1800 / 1800 2021',
+  dicgcInsured: 'Insured by DICGC up to ₹5,00,000'
+};
+

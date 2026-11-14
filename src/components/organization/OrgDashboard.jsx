@@ -31,7 +31,14 @@ import {
   MapPin,
   Phone,
   Compass,
-  User
+  User,
+  Landmark,
+  Copy,
+  IndianRupee,
+  Share2,
+  QrCode,
+  ExternalLink,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -41,12 +48,30 @@ import NearbyCampsFinder from '../common/NearbyCampsFinder';
 import ProfileEditModal from '../common/ProfileEditModal';
 import { lookupPincode } from '../../utils/pincodeService';
 
+export const NGO_BANK_DETAILS = {
+  bankName: 'Punjab National Bank',
+  hindiBankName: 'पंजाब नैशनल बैंक',
+  accountHolder: 'JAYA ATMA SAHAYAK GOT',
+  accountNumber: '0643010120852',
+  ifscCode: 'PUNB0064320',
+  accountType: 'Savings Fund General',
+  branch: 'Gourisagar Branch, Sibsagar - 785664, Assam',
+  branchPhone: '03776-261409',
+  email: 'bo064300@pnb.co.in',
+  cifId: 'U43970691',
+  micrCode: '785024518',
+  dicgcInsured: 'Insured by DICGC up to ₹5,00,000'
+};
+
 export default function OrgDashboard({ onOpenManifest }) {
   const { currentUser } = useAuth();
   const {
     requests,
     pledges,
     inventory,
+    monetaryDonations = [],
+    totalMonetaryFunds = 0,
+    addMonetaryDonation,
     verifyRequest,
     dispatchRequestShipment,
     acceptRequestDelivery,
@@ -64,7 +89,7 @@ export default function OrgDashboard({ onOpenManifest }) {
   } = useData();
 
   // Active navigation tab
-  // 'triage' | 'donate' | 'receive' | 'inventory' | 'pledges'
+  // 'triage' | 'donate' | 'receive' | 'inventory' | 'pledges' | 'bank-account'
   const [activeTab, setActiveTab] = useState('triage');
 
   const [dispatchTargetRequest, setDispatchTargetRequest] = useState(null);
@@ -72,6 +97,69 @@ export default function OrgDashboard({ onOpenManifest }) {
   const [editingStock, setEditingStock] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // Bank Account State & Handlers (Punjab National Bank Passbook Details)
+  const [copiedBankField, setCopiedBankField] = useState('');
+  const [showLogDepositModal, setShowLogDepositModal] = useState(false);
+  const [depositData, setDepositData] = useState({
+    amount: '',
+    donorName: '',
+    donorPhone: '',
+    donorEmail: '',
+    utr: '',
+    pincode: '',
+    purpose: 'Camp Meals & Basic Survival Sponsoring'
+  });
+  const [depositLogSuccess, setDepositLogSuccess] = useState(false);
+
+  const handleCopyBank = (text, fieldName) => {
+    navigator.clipboard.writeText(text);
+    setCopiedBankField(fieldName);
+    setTimeout(() => setCopiedBankField(''), 2000);
+  };
+
+  const handleCopyFullBankDetails = () => {
+    const text = `AidConnect / NGO Official Bank Account:
+• Beneficiary: ${NGO_BANK_DETAILS.accountHolder}
+• Bank: ${NGO_BANK_DETAILS.bankName} (${NGO_BANK_DETAILS.hindiBankName})
+• Account Number: ${NGO_BANK_DETAILS.accountNumber}
+• IFSC Code: ${NGO_BANK_DETAILS.ifscCode}
+• Account Type: ${NGO_BANK_DETAILS.accountType}
+• Branch: ${NGO_BANK_DETAILS.branch}
+• CIF ID: ${NGO_BANK_DETAILS.cifId}
+• Branch Phone: ${NGO_BANK_DETAILS.branchPhone}
+Please transfer funds directly via NEFT, RTGS, IMPS or UPI to this bank account.`;
+    navigator.clipboard.writeText(text);
+    setCopiedBankField('FULL');
+    setTimeout(() => setCopiedBankField(''), 2500);
+  };
+
+  const handleLogDeposit = (e) => {
+    e.preventDefault();
+    if (!depositData.amount || !depositData.donorName) return;
+    if (addMonetaryDonation) {
+      addMonetaryDonation({
+        ...depositData,
+        targetType: 'SPECIFIC_CAMP',
+        targetCampName: `${currentUser?.orgName || 'Jaya Atma Sahayak Got'} Operations`,
+        paymentMethod: 'DIRECT_BANK_TRANSFER'
+      });
+    }
+    setDepositLogSuccess(true);
+    setTimeout(() => {
+      setDepositLogSuccess(false);
+      setShowLogDepositModal(false);
+      setDepositData({
+        amount: '',
+        donorName: '',
+        donorPhone: '',
+        donorEmail: '',
+        utr: '',
+        pincode: '',
+        purpose: 'Camp Meals & Basic Survival Sponsoring'
+      });
+    }, 1500);
+  };
 
   // ========================================================
   // 1. ORG AS DONOR STATE (Donate Supplies to Camps)
@@ -449,6 +537,18 @@ export default function OrgDashboard({ onOpenManifest }) {
           {/* Quick Dual-Role Action Buttons */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
+              onClick={() => setActiveTab('bank-account')}
+              className={`px-3.5 py-2 text-xs font-bold rounded-md shadow-sm transition-colors flex items-center gap-1.5 ${
+                activeTab === 'bank-account'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 ring-1 ring-amber-600/30'
+              }`}
+            >
+              <Landmark className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Donation Bank Account</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('donate')}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-md shadow-sm transition-colors flex items-center gap-1.5"
             >
@@ -573,6 +673,18 @@ export default function OrgDashboard({ onOpenManifest }) {
           >
             <Truck className="w-3.5 h-3.5" />
             <span>Pledges & Convoys ({pledges.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('bank-account')}
+            className={`px-3.5 py-2 rounded-md transition-colors flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'bank-account'
+                ? 'bg-amber-600 text-white shadow-sm font-bold'
+                : 'text-amber-900 hover:bg-amber-100 bg-amber-50/80 border border-amber-300 font-bold'
+            }`}
+          >
+            <Landmark className="w-3.5 h-3.5" />
+            <span>Donation Bank Account (PNB)</span>
           </button>
         </div>
       </div>
@@ -1415,6 +1527,337 @@ export default function OrgDashboard({ onOpenManifest }) {
       )}
 
       {/* ========================================================
+          TAB 6: DONATION BANK ACCOUNT PARTICULARS (PNB)
+         ======================================================== */}
+      {activeTab === 'bank-account' && (
+        <div className="space-y-6">
+          {/* Top Info Banner */}
+          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-slate-950 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 text-amber-900 text-[11px] font-extrabold uppercase tracking-wider">
+                <Landmark className="w-3.5 h-3.5" />
+                <span>Verified NGO Bank Account for Donations</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                Direct Bank Transfer & Financial Relief Account
+              </h2>
+              <p className="text-xs text-amber-950 font-medium max-w-2xl leading-relaxed">
+                Donors can send money contributions directly into this verified Punjab National Bank account via <strong>IMPS, NEFT, RTGS, UPI</strong> (PhonePe, Google Pay, Paytm, BHIM), or branch cash deposit.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={handleCopyFullBankDetails}
+                className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center gap-2"
+              >
+                {copiedBankField === 'FULL' ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
+                    <span>Copied Full Particulars!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy Full Bank Details</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowLogDepositModal(true)}
+                className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 border border-amber-300"
+              >
+                <Plus className="w-4 h-4 text-amber-700" />
+                <span>Log Direct Bank Transfer</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Passbook Card */}
+          <div className="bg-white rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden">
+            {/* Passbook Header Band */}
+            <div className="bg-slate-900 text-white p-5 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-inner shrink-0">
+                  PNB
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                      {NGO_BANK_DETAILS.bankName}
+                    </h3>
+                    <span className="text-xs text-amber-400 font-semibold font-serif">
+                      ({NGO_BANK_DETAILS.hindiBankName})
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium">
+                    ...The name you can BANK upon! • Branch: Gourisagar, Sibsagar
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[11px] font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Passbook Verified Record • DICGC Insured</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Passbook Body Grid */}
+            <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Column 1 & 2: Account Particulars */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-600" />
+                    <span>खाता विवरण / Account Particulars</span>
+                  </h4>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    Passbook Srl: <strong>44 / SAVINGS FUND GENERAL</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Account Name */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Beneficiary / Account Holder Name
+                    </div>
+                    <div className="text-base font-extrabold text-slate-900 tracking-tight">
+                      {NGO_BANK_DETAILS.accountHolder}
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Authorised Signatory / Registered SHG & NGO</span>
+                    </div>
+                  </div>
+
+                  {/* Account Type */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Account Type & Scheme
+                    </div>
+                    <div className="text-base font-extrabold text-slate-900">
+                      {NGO_BANK_DETAILS.accountType}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      CIF ID: <strong className="text-slate-800">{NGO_BANK_DETAILS.cifId}</strong>
+                    </div>
+                  </div>
+
+                  {/* Account Number with Copy */}
+                  <div className="p-4 bg-amber-50/80 rounded-xl border-2 border-amber-400 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-900">
+                        Account Number (A/C No)
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-200/60 px-1.5 py-0.2 rounded">
+                        13 Digits
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xl sm:text-2xl font-black tracking-wider text-slate-950">
+                        {NGO_BANK_DETAILS.accountNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBank(NGO_BANK_DETAILS.accountNumber, 'acc')}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 transition-all shadow-sm shrink-0"
+                      >
+                        {copiedBankField === 'acc' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* IFSC Code with Copy */}
+                  <div className="p-4 bg-blue-50/80 rounded-xl border-2 border-blue-400 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-900">
+                        RTGS / NEFT / IFSC Code
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-200/60 px-1.5 py-0.2 rounded">
+                        All Electronic Transfers
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xl sm:text-2xl font-black tracking-wider text-blue-950">
+                        {NGO_BANK_DETAILS.ifscCode}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBank(NGO_BANK_DETAILS.ifscCode, 'ifsc')}
+                        className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs flex items-center gap-1 transition-all shadow-sm shrink-0"
+                      >
+                        {copiedBankField === 'ifsc' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Branch Particulars */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-semibold">Branch Office</div>
+                    <div className="font-bold text-slate-900 mt-0.5">{NGO_BANK_DETAILS.branch}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-semibold">MICR Code & Branch Contact</div>
+                    <div className="font-mono font-bold text-slate-800 mt-0.5">
+                      {NGO_BANK_DETAILS.micrCode} • Tel: {NGO_BANK_DETAILS.branchPhone}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-semibold">Deposit Insurance</div>
+                    <div className="text-emerald-800 font-semibold mt-0.5">{NGO_BANK_DETAILS.dicgcInsured}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Instant UPI & Mobile Banking Guide */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-amber-400" />
+                    <h4 className="font-bold text-sm tracking-tight">How to Donate via UPI / Bank App</h4>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Donors can transfer money using <strong>Google Pay, PhonePe, Paytm, BHIM</strong>, or any mobile banking app:
+                  </p>
+
+                  <ol className="text-xs text-slate-300 space-y-2 list-decimal list-inside bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60 font-medium">
+                    <li>Open <strong>GPay / PhonePe / Paytm</strong>.</li>
+                    <li>Select <strong>"To Bank Account / Bank Transfer"</strong>.</li>
+                    <li>
+                      Enter A/C: <span className="font-mono text-amber-300 font-bold">0643010120852</span>
+                    </li>
+                    <li>
+                      Enter IFSC: <span className="font-mono text-amber-300 font-bold">PUNB0064320</span>
+                    </li>
+                    <li>
+                      Beneficiary: <span className="text-white font-bold">JAYA ATMA SAHAYAK GOT</span>
+                    </li>
+                  </ol>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <div className="text-[11px] text-slate-400">
+                    All donations are credited directly into the Punjab National Bank account for relief operations.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyFullBankDetails}
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Share Bank Details on WhatsApp / SMS</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Monetary Donations Logged to this Account */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <IndianRupee className="w-4 h-4 text-emerald-600" />
+                  <span>Direct Bank Transfers & Financial Contributions Log</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Record of monetary aid deposited by supporters into the organization's PNB account.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-600">
+                  Total Logged Funds: <strong className="text-emerald-700 text-sm">₹{totalMonetaryFunds.toLocaleString('en-IN')}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowLogDepositModal(true)}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Log New Transfer</span>
+                </button>
+              </div>
+            </div>
+
+            {monetaryDonations.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500 space-y-1">
+                <p className="font-semibold text-slate-700">No bank deposits logged yet.</p>
+                <p>When supporters transfer money directly into the PNB account, click "Log New Transfer" above to add their receipt to the ledger.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] bg-slate-50/70">
+                      <th className="py-2.5 px-3">Receipt #</th>
+                      <th className="py-2.5 px-3">Donor Name</th>
+                      <th className="py-2.5 px-3">Amount</th>
+                      <th className="py-2.5 px-3">UTR / Reference</th>
+                      <th className="py-2.5 px-3">Date</th>
+                      <th className="py-2.5 px-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {monetaryDonations.map((don) => (
+                      <tr key={don.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{don.receiptNumber}</td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-800">{don.donorName}</div>
+                          {don.donorPhone && <div className="text-[11px] text-slate-500 font-mono">{don.donorPhone}</div>}
+                        </td>
+                        <td className="py-3 px-3 font-extrabold text-emerald-700 font-mono text-sm">
+                          ₹{don.amount.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-[11px] text-slate-600">{don.utr || 'DIRECT-BANK-IMPS'}</td>
+                        <td className="py-3 px-3 text-slate-500 text-[11px]">
+                          {new Date(don.timestamp).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            VERIFIED RECEIVED
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
           TAB 5: PLEDGES & CONVOYS
          ======================================================== */}
       {activeTab === 'pledges' && (
@@ -1494,6 +1937,337 @@ export default function OrgDashboard({ onOpenManifest }) {
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 6: DONATION BANK ACCOUNT PARTICULARS (PNB)
+         ======================================================== */}
+      {activeTab === 'bank-account' && (
+        <div className="space-y-6">
+          {/* Top Info Banner */}
+          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-slate-950 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 text-amber-900 text-[11px] font-extrabold uppercase tracking-wider">
+                <Landmark className="w-3.5 h-3.5" />
+                <span>Verified NGO Bank Account for Donations</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                Direct Bank Transfer & Financial Relief Account
+              </h2>
+              <p className="text-xs text-amber-950 font-medium max-w-2xl leading-relaxed">
+                Donors can send money contributions directly into this verified Punjab National Bank account via <strong>IMPS, NEFT, RTGS, UPI</strong> (PhonePe, Google Pay, Paytm, BHIM), or branch cash deposit.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={handleCopyFullBankDetails}
+                className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center gap-2"
+              >
+                {copiedBankField === 'FULL' ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
+                    <span>Copied Full Particulars!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy Full Bank Details</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowLogDepositModal(true)}
+                className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 border border-amber-300"
+              >
+                <Plus className="w-4 h-4 text-amber-700" />
+                <span>Log Direct Bank Transfer</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Passbook Card */}
+          <div className="bg-white rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden">
+            {/* Passbook Header Band */}
+            <div className="bg-slate-900 text-white p-5 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-inner shrink-0">
+                  PNB
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                      {NGO_BANK_DETAILS.bankName}
+                    </h3>
+                    <span className="text-xs text-amber-400 font-semibold font-serif">
+                      ({NGO_BANK_DETAILS.hindiBankName})
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium">
+                    ...The name you can BANK upon! • Branch: Gourisagar, Sibsagar
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[11px] font-bold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Passbook Verified Record • DICGC Insured</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Passbook Body Grid */}
+            <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Column 1 & 2: Account Particulars */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-600" />
+                    <span>खाता विवरण / Account Particulars</span>
+                  </h4>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    Passbook Srl: <strong>44 / SAVINGS FUND GENERAL</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Account Name */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Beneficiary / Account Holder Name
+                    </div>
+                    <div className="text-base font-extrabold text-slate-900 tracking-tight">
+                      {NGO_BANK_DETAILS.accountHolder}
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Authorised Signatory / Registered SHG & NGO</span>
+                    </div>
+                  </div>
+
+                  {/* Account Type */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Account Type & Scheme
+                    </div>
+                    <div className="text-base font-extrabold text-slate-900">
+                      {NGO_BANK_DETAILS.accountType}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      CIF ID: <strong className="text-slate-800">{NGO_BANK_DETAILS.cifId}</strong>
+                    </div>
+                  </div>
+
+                  {/* Account Number with Copy */}
+                  <div className="p-4 bg-amber-50/80 rounded-xl border-2 border-amber-400 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-900">
+                        Account Number (A/C No)
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-200/60 px-1.5 py-0.2 rounded">
+                        13 Digits
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xl sm:text-2xl font-black tracking-wider text-slate-950">
+                        {NGO_BANK_DETAILS.accountNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBank(NGO_BANK_DETAILS.accountNumber, 'acc')}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 transition-all shadow-sm shrink-0"
+                      >
+                        {copiedBankField === 'acc' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* IFSC Code with Copy */}
+                  <div className="p-4 bg-blue-50/80 rounded-xl border-2 border-blue-400 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-900">
+                        RTGS / NEFT / IFSC Code
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-200/60 px-1.5 py-0.2 rounded">
+                        All Electronic Transfers
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xl sm:text-2xl font-black tracking-wider text-blue-950">
+                        {NGO_BANK_DETAILS.ifscCode}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBank(NGO_BANK_DETAILS.ifscCode, 'ifsc')}
+                        className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs flex items-center gap-1 transition-all shadow-sm shrink-0"
+                      >
+                        {copiedBankField === 'ifsc' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Branch Particulars */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-semibold">Branch Office</div>
+                    <div className="font-bold text-slate-900 mt-0.5">{NGO_BANK_DETAILS.branch}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-semibold">MICR Code & Branch Contact</div>
+                    <div className="font-mono font-bold text-slate-800 mt-0.5">
+                      {NGO_BANK_DETAILS.micrCode} • Tel: {NGO_BANK_DETAILS.branchPhone}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-semibold">Deposit Insurance</div>
+                    <div className="text-emerald-800 font-semibold mt-0.5">{NGO_BANK_DETAILS.dicgcInsured}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Instant UPI & Mobile Banking Guide */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-amber-400" />
+                    <h4 className="font-bold text-sm tracking-tight">How to Donate via UPI / Bank App</h4>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Donors can transfer money using <strong>Google Pay, PhonePe, Paytm, BHIM</strong>, or any mobile banking app:
+                  </p>
+
+                  <ol className="text-xs text-slate-300 space-y-2 list-decimal list-inside bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60 font-medium">
+                    <li>Open <strong>GPay / PhonePe / Paytm</strong>.</li>
+                    <li>Select <strong>"To Bank Account / Bank Transfer"</strong>.</li>
+                    <li>
+                      Enter A/C: <span className="font-mono text-amber-300 font-bold">0643010120852</span>
+                    </li>
+                    <li>
+                      Enter IFSC: <span className="font-mono text-amber-300 font-bold">PUNB0064320</span>
+                    </li>
+                    <li>
+                      Beneficiary: <span className="text-white font-bold">JAYA ATMA SAHAYAK GOT</span>
+                    </li>
+                  </ol>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <div className="text-[11px] text-slate-400">
+                    All donations are credited directly into the Punjab National Bank account for relief operations.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyFullBankDetails}
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Share Bank Details on WhatsApp / SMS</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Monetary Donations Logged to this Account */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <IndianRupee className="w-4 h-4 text-emerald-600" />
+                  <span>Direct Bank Transfers & Financial Contributions Log</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Record of monetary aid deposited by supporters into the organization's PNB account.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-600">
+                  Total Logged Funds: <strong className="text-emerald-700 text-sm">₹{totalMonetaryFunds.toLocaleString('en-IN')}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowLogDepositModal(true)}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Log New Transfer</span>
+                </button>
+              </div>
+            </div>
+
+            {monetaryDonations.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500 space-y-1">
+                <p className="font-semibold text-slate-700">No bank deposits logged yet.</p>
+                <p>When supporters transfer money directly into the PNB account, click "Log New Transfer" above to add their receipt to the ledger.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] bg-slate-50/70">
+                      <th className="py-2.5 px-3">Receipt #</th>
+                      <th className="py-2.5 px-3">Donor Name</th>
+                      <th className="py-2.5 px-3">Amount</th>
+                      <th className="py-2.5 px-3">UTR / Reference</th>
+                      <th className="py-2.5 px-3">Date</th>
+                      <th className="py-2.5 px-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {monetaryDonations.map((don) => (
+                      <tr key={don.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{don.receiptNumber}</td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-800">{don.donorName}</div>
+                          {don.donorPhone && <div className="text-[11px] text-slate-500 font-mono">{don.donorPhone}</div>}
+                        </td>
+                        <td className="py-3 px-3 font-extrabold text-emerald-700 font-mono text-sm">
+                          ₹{don.amount.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-[11px] text-slate-600">{don.utr || 'DIRECT-BANK-IMPS'}</td>
+                        <td className="py-3 px-3 text-slate-500 text-[11px]">
+                          {new Date(don.timestamp).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            VERIFIED RECEIVED
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -1882,6 +2656,174 @@ export default function OrgDashboard({ onOpenManifest }) {
           </div>
         </div>
       )}
+      {/* LOG DIRECT BANK DEPOSIT MODAL */}
+      {showLogDepositModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-900 text-white p-5 px-6 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center">
+                  PNB
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Log Bank Donation Deposit</h3>
+                  <p className="text-[11px] text-slate-400">Record direct IMPS / NEFT / UPI deposit to PNB account</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLogDepositModal(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {depositLogSuccess ? (
+              <div className="p-8 text-center space-y-3">
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 stroke-[3]" />
+                </div>
+                <h4 className="font-bold text-slate-900 text-base">Deposit Logged Successfully!</h4>
+                <p className="text-xs text-slate-600">
+                  The donation has been recorded in the PNB account ledger and the public transparency tracker.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleLogDeposit} className="p-6 space-y-4 text-xs">
+                <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-slate-800 space-y-0.5">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-amber-900">
+                    Credited Bank Account
+                  </div>
+                  <div className="font-bold text-xs text-slate-900">
+                    Punjab National Bank • A/C: 0643010120852 (JAYA ATMA SAHAYAK GOT)
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Donation Amount (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        placeholder="5000"
+                        value={depositData.amount}
+                        onChange={(e) => setDepositData({ ...depositData, amount: e.target.value })}
+                        className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg outline-none font-bold text-sm focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Bank UTR / Transaction ID
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 331409128374"
+                      value={depositData.utr}
+                      onChange={(e) => setDepositData({ ...depositData, utr: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none font-mono focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Donor Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ramesh Kalita"
+                      value={depositData.donorName}
+                      onChange={(e) => setDepositData({ ...depositData, donorName: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Donor Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9876543210"
+                      value={depositData.donorPhone}
+                      onChange={(e) => setDepositData({ ...depositData, donorPhone: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none font-mono focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Donor Email</label>
+                    <input
+                      type="email"
+                      placeholder="donor@example.com"
+                      value={depositData.donorEmail}
+                      onChange={(e) => setDepositData({ ...depositData, donorEmail: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">PIN Code</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 785664"
+                      maxLength={6}
+                      value={depositData.pincode}
+                      onChange={(e) => setDepositData({ ...depositData, pincode: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none font-mono focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Purpose / Tag</label>
+                  <select
+                    value={depositData.purpose}
+                    onChange={(e) => setDepositData({ ...depositData, purpose: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-amber-500"
+                  >
+                    <option value="Camp Meals & Basic Survival Sponsoring">Camp Meals & Basic Survival Sponsoring</option>
+                    <option value="Medical & Emergency First Aid Relief">Medical & Emergency First Aid Relief</option>
+                    <option value="Drinking Water & Water Purification">Drinking Water & Water Purification</option>
+                    <option value="Blankets & Shelter Material">Blankets & Shelter Material</option>
+                    <option value="General Disaster Relief Operations">General Disaster Relief Operations</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowLogDepositModal(false)}
+                    className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Confirm & Record Deposit</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Profile Edit Modal */}
       {showProfileModal && (
         <ProfileEditModal
