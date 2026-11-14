@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Phone, MapPin, Mail, Building, Briefcase, Check, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function ProfileEditModal({ onClose }) {
+export default function ProfileEditModal({ isOpen = true, onClose }) {
   const { currentUser, updateUserProfile } = useAuth();
 
   const [name, setName] = useState(currentUser?.name || currentUser?.orgName || '');
@@ -16,7 +16,7 @@ export default function ProfileEditModal({ onClose }) {
   const [availability, setAvailability] = useState(currentUser?.availability || 'Immediate On-call');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  if (!currentUser) return null;
+  if (!isOpen || !currentUser) return null;
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -224,3 +224,4 @@ export default function ProfileEditModal({ onClose }) {
     </div>
   );
 }
+

@@ -1883,10 +1883,12 @@ export default function OrgDashboard({ onOpenManifest }) {
         </div>
       )}
       {/* Profile Edit Modal */}
-      <ProfileEditModal
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
+      {showProfileModal && (
+        <ProfileEditModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
     </div>
   );
 }
